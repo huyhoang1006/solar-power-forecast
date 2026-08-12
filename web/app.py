@@ -17,6 +17,7 @@ duoc, va som muon cung co nguoi tin nham mot trong hai.
 
 import json
 import queue
+import sqlite3
 import sys
 import threading
 import time
@@ -39,8 +40,160 @@ import du_bao_tuong_lai as DB           # noqa: E402
 app = Flask(__name__)
 
 THU_MUC_DU_LIEU = GOC / "data" / "dataset"
-LICH_SU_REALTIME = {}
-KHOA_REALTIME = threading.Lock()
+DB_REALTIME = GOC / "data" / "realtime.sqlite3"
+
+
+def khoi_tao_db_realtime():
+    DB_REALTIME.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(DB_REALTIME) as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS realtime_prediction (
+                thuat_toan TEXT NOT NULL,
+                thoi_gian TEXT NOT NULL,
+                power_mw REAL NOT NULL,
+                ghi_wm2 REAL NOT NULL,
+                temperature_c REAL,
+                humidity_pct REAL,
+                cloud_pct REAL,
+                wind_kmh REAL,
+                PRIMARY KEY (thuat_toan, thoi_gian)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS forecast_4h (
+                thuat_toan TEXT NOT NULL,
+                issued_at TEXT NOT NULL,
+                target_time TEXT NOT NULL,
+                lead_minutes INTEGER NOT NULL,
+                forecast_ghi_wm2 REAL NOT NULL,
+                forecast_power_mw REAL NOT NULL,
+                updated_ghi_wm2 REAL,
+                updated_power_mw REAL,
+                updated_at TEXT,
+                PRIMARY KEY (thuat_toan, issued_at, target_time)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS weather_reanalysis (
+                thuat_toan TEXT NOT NULL,
+                target_time TEXT NOT NULL,
+                ghi_wm2 REAL NOT NULL,
+                power_mw REAL NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (thuat_toan, target_time)
+            )
+        """)
+
+
+def luu_realtime(thuat_toan, diem):
+    with sqlite3.connect(DB_REALTIME, timeout=10) as db:
+        db.execute("""
+            INSERT INTO realtime_prediction
+              (thuat_toan, thoi_gian, power_mw, ghi_wm2, temperature_c,
+               humidity_pct, cloud_pct, wind_kmh)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(thuat_toan, thoi_gian) DO UPDATE SET
+              power_mw=excluded.power_mw, ghi_wm2=excluded.ghi_wm2,
+              temperature_c=excluded.temperature_c, humidity_pct=excluded.humidity_pct,
+              cloud_pct=excluded.cloud_pct, wind_kmh=excluded.wind_kmh
+        """, (thuat_toan, diem["time"], diem["power_mw"], diem["ghi_wm2"],
+              diem["temperature_c"], diem["humidity_pct"], diem["cloud_pct"],
+              diem["wind_kmh"]))
+
+
+def doc_realtime(thuat_toan):
+    """Doc toan bo lich su cua thuat toan theo thu tu thoi gian."""
+    with sqlite3.connect(DB_REALTIME, timeout=10) as db:
+        db.row_factory = sqlite3.Row
+        rows = db.execute("""
+            SELECT thoi_gian AS time, power_mw, ghi_wm2, temperature_c,
+                   humidity_pct, cloud_pct, wind_kmh
+            FROM realtime_prediction
+            WHERE thuat_toan = ?
+            ORDER BY thoi_gian
+        """, (thuat_toan,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def luu_lo_du_bao(thuat_toan, issued_at, rows):
+    with sqlite3.connect(DB_REALTIME, timeout=10) as db:
+        db.executemany("""
+            INSERT INTO forecast_4h
+              (thuat_toan, issued_at, target_time, lead_minutes,
+               forecast_ghi_wm2, forecast_power_mw)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(thuat_toan, issued_at, target_time) DO UPDATE SET
+              forecast_ghi_wm2=excluded.forecast_ghi_wm2,
+              forecast_power_mw=excluded.forecast_power_mw
+        """, [(thuat_toan, issued_at, r["time"], r["lead_minutes"],
+                r["ghi_wm2"], r["power_mw"]) for r in rows])
+
+
+def cap_nhat_moc_da_xay_ra(thuat_toan, target_time, ghi, power, updated_at):
+    with sqlite3.connect(DB_REALTIME, timeout=10) as db:
+        db.execute("""
+            UPDATE forecast_4h
+            SET updated_ghi_wm2=?, updated_power_mw=?, updated_at=?
+            WHERE thuat_toan=? AND target_time=?
+        """, (ghi, power, updated_at, thuat_toan, target_time))
+
+
+def luu_thoi_tiet_hoi_cuu(thuat_toan, rows, updated_at):
+    with sqlite3.connect(DB_REALTIME, timeout=10) as db:
+        db.executemany("""
+            INSERT INTO weather_reanalysis
+              (thuat_toan, target_time, ghi_wm2, power_mw, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(thuat_toan, target_time) DO UPDATE SET
+              ghi_wm2=excluded.ghi_wm2, power_mw=excluded.power_mw,
+              updated_at=excluded.updated_at
+        """, [(thuat_toan, r["time"], r["ghi_wm2"], r["power_mw"], updated_at)
+                for r in rows])
+
+
+def du_lieu_bieu_do_4h(thuat_toan):
+    with sqlite3.connect(DB_REALTIME, timeout=10) as db:
+        db.row_factory = sqlite3.Row
+        rows = [dict(r) for r in db.execute("""
+            SELECT * FROM forecast_4h WHERE thuat_toan=?
+            ORDER BY issued_at, target_time
+        """, (thuat_toan,))]
+        reanalysis = [dict(r) for r in db.execute("""
+            SELECT target_time AS time, power_mw, ghi_wm2
+            FROM weather_reanalysis WHERE thuat_toan=? ORDER BY target_time
+        """, (thuat_toan,))]
+    if not rows:
+        return {"past_forecast": [], "weather_updated": reanalysis,
+                "latest_forecast": [], "previous_forecast": [], "issued_at": []}
+
+    issued = sorted({r["issued_at"] for r in rows})
+    latest, previous = issued[-1], (issued[-2] if len(issued) > 1 else None)
+    by_target = {}
+    for r in rows:
+        by_target.setdefault(r["target_time"], []).append(r)
+
+    # Qua khu: lay ban du bao gan thoi diem dich nhat (lead time ngan nhat).
+    past = []
+    for target in sorted(by_target):
+        versions = by_target[target]
+        done = [r for r in versions if r["updated_power_mw"] is not None]
+        if done:
+            gan_nhat = min(done, key=lambda r: r["lead_minutes"])
+            past.append({"time": target, "power_mw": gan_nhat["forecast_power_mw"],
+                         "ghi_wm2": gan_nhat["forecast_ghi_wm2"]})
+
+    def lo(moc):
+        return [{"time": r["target_time"], "power_mw": r["forecast_power_mw"],
+                 "ghi_wm2": r["forecast_ghi_wm2"],
+                 "lead_minutes": r["lead_minutes"]}
+                for r in rows if r["issued_at"] == moc] if moc else []
+    return {"past_forecast": past, "weather_updated": reanalysis,
+            "latest_forecast": lo(latest), "previous_forecast": lo(previous),
+            "issued_at": issued, "latest_issued_at": latest,
+            "previous_issued_at": previous}
+
+
+khoi_tao_db_realtime()
 
 # Mo ta ngan gon tung thuat toan, de nguoi dung biet minh dang chon gi
 GIAI_THICH = {
@@ -396,10 +549,28 @@ def tai_huong_dan_deploy_model_route():
                      mimetype="text/markdown")
 
 
-@app.get("/realtime")
-def realtime_route():
-    """Lay thoi tiet hien tai va du doan cong suat; giu 24 gio diem gan nhat."""
+@app.get("/realtime/history")
+def realtime_history_route():
     thuat_toan = request.args.get("thuat_toan", "gbm")
+    if thuat_toan not in H.THUAT_TOAN:
+        return {"loi": "Khong biet thuat toan."}, 400
+    return du_lieu_bieu_do_4h(thuat_toan)
+
+
+def _du_doan_frame(goi, frame):
+    cols = goi["sieu_du_lieu"]["bien_dau_vao"]
+    thieu = [c for c in cols if c not in frame.columns]
+    if thieu:
+        raise ValueError(f"Model can bien realtime chua co: {thieu}")
+    p = np.clip(goi["mo_hinh"].predict(frame[cols].values.astype(float)), -1.0, H.CAP_AC)
+    return H.ap_nen_dem(p, frame["sol_elev"].values, goi["nen_dem_mw"])
+
+
+@app.post("/realtime/update")
+def realtime_update_route():
+    """Chot moc vua qua va phat hanh 16 diem du bao cho 4 gio tiep theo."""
+    ct = request.get_json(silent=True) or {}
+    thuat_toan = ct.get("thuat_toan", "gbm")
     if thuat_toan not in H.THUAT_TOAN:
         return {"loi": "Khong biet thuat toan."}, 400
     try:
@@ -408,43 +579,72 @@ def realtime_route():
             "latitude": DB.TT.LAT, "longitude": DB.TT.LON,
             "current": "temperature_2m,relative_humidity_2m,cloud_cover,"
                        "wind_speed_10m,shortwave_radiation",
+            "hourly": "shortwave_radiation",
+            "forecast_days": 2,
+            "past_days": 1,
             "timezone": DB.TT.MUI_GIO,
         }
         url = DB.TT.API + "?" + urllib.parse.urlencode(tham_so)
         req = urllib.request.Request(url, headers={"User-Agent": "solar-forecast-fujiwara/1.0"})
         with urllib.request.urlopen(req, timeout=30) as phan_hoi:
-            hien_tai = json.loads(phan_hoi.read().decode("utf-8"))["current"]
+            du_lieu = json.loads(phan_hoi.read().decode("utf-8"))
+        hien_tai = du_lieu["current"]
 
-        moc = pd.Timestamp(hien_tai["time"])
+        moc = pd.Timestamp(hien_tai["time"]).floor("15min")
         hh = DB._hinh_hoc(pd.DatetimeIndex([moc]))
         dong = hh.copy()
         dong["ghi_wm2"] = max(0.0, float(hien_tai.get("shortwave_radiation") or 0.0))
-        cols = goi["sieu_du_lieu"]["bien_dau_vao"]
-        thieu = [c for c in cols if c not in dong.columns]
-        if thieu:
-            raise ValueError(f"Model can bien realtime chua co: {thieu}")
-        p = float(goi["mo_hinh"].predict(dong[cols].values.astype(float))[0])
-        p = float(np.clip(p, -1.0, H.CAP_AC))
-        p = float(H.ap_nen_dem(np.array([p]), dong["sol_elev"].values,
-                               goi["nen_dem_mw"])[0])
-        diem = {
-            "time": moc.isoformat(), "power_mw": round(p, 3),
-            "ghi_wm2": round(float(dong["ghi_wm2"].iloc[0]), 1),
-            "temperature_c": _lam_tron(hien_tai.get("temperature_2m"), 1),
-            "humidity_pct": _lam_tron(hien_tai.get("relative_humidity_2m"), 0),
-            "cloud_pct": _lam_tron(hien_tai.get("cloud_cover"), 0),
-            "wind_kmh": _lam_tron(hien_tai.get("wind_speed_10m"), 1),
-        }
-        with KHOA_REALTIME:
-            lich_su = LICH_SU_REALTIME.setdefault(thuat_toan, [])
-            if not lich_su or lich_su[-1]["time"] != diem["time"]:
-                lich_su.append(diem)
-            LICH_SU_REALTIME[thuat_toan] = lich_su[-96:]
-            ra = list(LICH_SU_REALTIME[thuat_toan])
-        return {"diem": diem, "lich_su": ra, "cap_nhat_sau_giay": 900,
-                "nguon": "Open-Meteo current conditions"}
+        p_hien_tai = float(_du_doan_frame(goi, dong)[0])
+        cap_nhat_moc_da_xay_ra(thuat_toan, moc.isoformat(),
+                              round(float(dong["ghi_wm2"].iloc[0]), 1),
+                              round(p_hien_tai, 3), pd.Timestamp.now().isoformat())
+
+        # Open-Meteo tra buc xa trung binh gio; chuyen qua chi so troi quang de
+        # noi suy dung dang vat ly sang cac moc 15 phut.
+        nwp = pd.DataFrame({"ghi": du_lieu["hourly"]["shortwave_radiation"]},
+                           index=pd.to_datetime(du_lieu["hourly"]["time"]))
+        # Tai dung moi lan tu 05:00 hom nay den hien tai. Day la duong hoi cuu theo
+        # thoi tiet cap nhat, khong gia mao thanh du bao da phat hanh trong qua khu.
+        bat_dau_ngay = moc.normalize() + pd.Timedelta(hours=5)
+        if moc >= bat_dau_ngay:
+            moc_hoi_cuu = pd.date_range(bat_dau_ngay, moc, freq="15min")
+            luoi_hoi_cuu = pd.date_range(bat_dau_ngay.floor("1h"),
+                                         moc.ceil("1h") + pd.Timedelta(minutes=45),
+                                         freq="15min")
+            frame_hoi_cuu = DB.gio_sang_15p(nwp, luoi_hoi_cuu).reindex(moc_hoi_cuu)
+            # Moc cuoi co current 15 phut moi nhat, uu tien no hon noi suy gio.
+            frame_hoi_cuu.loc[moc, "ghi_wm2"] = dong["ghi_wm2"].iloc[0]
+            powers_hoi_cuu = _du_doan_frame(goi, frame_hoi_cuu)
+            rows_hoi_cuu = [
+                {"time": t.isoformat(),
+                 "ghi_wm2": round(float(frame_hoi_cuu.loc[t, "ghi_wm2"]), 1),
+                 "power_mw": round(float(powers_hoi_cuu[i]), 3)}
+                for i, t in enumerate(moc_hoi_cuu)
+            ]
+            luu_thoi_tiet_hoi_cuu(thuat_toan, rows_hoi_cuu,
+                                  pd.Timestamp.now().isoformat())
+
+        targets = pd.date_range(moc + pd.Timedelta(minutes=15), periods=16, freq="15min")
+        day_luoi = pd.date_range(targets[0].floor("1h"),
+                                 targets[-1].ceil("1h") + pd.Timedelta(minutes=45),
+                                 freq="15min")
+        frame = DB.gio_sang_15p(nwp, day_luoi).reindex(targets)
+        powers = _du_doan_frame(goi, frame)
+        issued_at = moc.isoformat()
+        rows = [{"time": t.isoformat(), "lead_minutes": (i + 1) * 15,
+                 "ghi_wm2": round(float(frame.loc[t, "ghi_wm2"]), 1),
+                 "power_mw": round(float(powers[i]), 3)}
+                for i, t in enumerate(targets)]
+        luu_lo_du_bao(thuat_toan, issued_at, rows)
+        ra = du_lieu_bieu_do_4h(thuat_toan)
+        ra.update({"current": {"time": moc.isoformat(), "power_mw": round(p_hien_tai, 3),
+                               "ghi_wm2": round(float(dong["ghi_wm2"].iloc[0]), 1),
+                               "temperature_c": _lam_tron(hien_tai.get("temperature_2m"), 1),
+                               "cloud_pct": _lam_tron(hien_tai.get("cloud_cover"), 0)},
+                   "cap_nhat_sau_giay": 900, "nguon": "Open-Meteo"})
+        return ra
     except Exception as e:                           # noqa: BLE001
-        return {"loi": str(e)}, 503
+        return {"loi": str(e), **du_lieu_bieu_do_4h(thuat_toan)}, 503
 
 
 @app.post("/ngay-qua-khu")

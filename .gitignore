@@ -21,3 +21,6 @@ data/csv/His_131.csv
 *.log
 *.tmp
 db_fujiwara.sql
+data/realtime.sqlite3
+data/realtime.sqlite3-shm
+data/realtime.sqlite3-wal

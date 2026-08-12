@@ -264,7 +264,9 @@ Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ �
 <section>
   <h2>3. Theo dõi công suất realtime</h2>
   <p class="mo">Tự cập nhật mỗi 15 phút từ thời tiết hiện tại của Open-Meteo và model
-    đang chọn. Lịch sử trên biểu đồ được giữ trong bộ nhớ máy chủ tối đa 24 giờ.</p>
+    đang chọn. Mỗi lượt phát hành 16 điểm cho 4 giờ tới. Toàn bộ phiên bản dự báo
+    được lưu trong SQLite và tự tải lại ngay khi mở ứng dụng. Trục ngày bắt đầu lúc
+    05:00; phần trước khi hệ thống phát hành thật chỉ có đường thời tiết hồi cứu.</p>
   <div class="chi-so" id="realtime-chi-so">
     <div class="o nhan-manh"><div class="ten">Công suất dự đoán</div>
       <div class="gia-tri" id="rt-power">—</div></div>
@@ -273,7 +275,17 @@ Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ �
       <div class="gia-tri" id="rt-temp">—</div></div>
     <div class="o"><div class="ten">Mây</div><div class="gia-tri" id="rt-cloud">—</div></div>
   </div>
+  <div class="hang" style="gap:8px;margin-bottom:8px">
+    <button type="button" id="rt-prev" title="Xem khoảng thời gian cũ hơn">← Trước</button>
+    <button type="button" id="rt-next" title="Xem khoảng thời gian mới hơn">Sau →</button>
+    <button type="button" id="rt-zoom-in" title="Phóng to khoảng thời gian">Zoom in +</button>
+    <button type="button" id="rt-zoom-out" title="Thu nhỏ khoảng thời gian">Zoom out −</button>
+    <button type="button" id="rt-latest">Về hiện tại</button>
+    <span class="mo" id="rt-range"></span>
+  </div>
   <div id="rt-chart" class="bieu-do"></div>
+  <input id="rt-scroll" type="range" min="0" max="0" value="0" style="width:100%"
+         aria-label="Di chuyển theo lịch sử dự đoán">
   <p class="mo" id="rt-status">Đang lấy thời tiết hiện tại…</p>
 </section>
 
@@ -1122,16 +1134,35 @@ $('#nut-du-bao').addEventListener('click', function () {
 });
 
 // ---------------------------------------------------------- realtime 15 phut
+let rtTatCa = [], rtSoDiem = 96, rtBatDau = 0, rtDaDatHomNay = false;
+
 function veRealtime(ds) {
   if (!ds.length) return '<p class="mo">Chưa có điểm realtime.</p>';
   const W = 1000, Hh = 260, L = 54, R = 58, T = 20, B = 36;
   const pw = W - L - R, ph = Hh - T - B;
   const x = function (i) { return L + (ds.length === 1 ? pw / 2 : i * pw / (ds.length - 1)); };
   const yP = function (v) { return T + ph - Math.max(0, Math.min(40, v)) / 40 * ph; };
-  const maxG = Math.max(1000, ...ds.map(function (d) { return Number(d.ghi_wm2 || 0); }));
-  const yG = function (v) { return T + ph - Math.max(0, Number(v || 0)) / maxG * ph; };
-  const path = function (layY) { return ds.map(function (d, i) {
-    return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + layY(d).toFixed(1); }).join(' '); };
+  const path = function (ten) {
+    let batDau = true;
+    return ds.map(function (d, i) {
+      if (d[ten] === null || d[ten] === undefined) { batDau = true; return ''; }
+      const lenh = batDau ? 'M' : 'L'; batDau = false;
+      return lenh + x(i).toFixed(1) + ' ' + yP(d[ten]).toFixed(1);
+    }).join(' ');
+  };
+  const cham = function (ten, mau) {
+    return ds.map(function (d, i) {
+      if (d[ten] === null || d[ten] === undefined) return '';
+      const ghi = d[ten + 'Ghi'];
+      const tip = String(d.time).replace('T', ' ').slice(0, 16)
+        + ' | Công suất: ' + Number(d[ten]).toFixed(2) + ' MW'
+        + ' | Bức xạ: ' + (ghi === null || ghi === undefined ? '—'
+          : Number(ghi).toFixed(0) + ' W/m²');
+      return '<circle cx="' + x(i).toFixed(1) + '" cy="' + yP(d[ten]).toFixed(1)
+        + '" r="4" fill="' + mau + '" stroke="#fff" stroke-width="1.2"'
+        + ' style="cursor:help"><title>' + tip + '</title></circle>';
+    }).join('');
+  };
   let g = '<svg viewBox="0 0 ' + W + ' ' + Hh + '" width="100%" height="260" role="img"'
     + ' aria-label="Biểu đồ công suất realtime"><rect x="' + L + '" y="' + T
     + '" width="' + pw + '" height="' + ph + '" fill="#fafbfc" stroke="#d9d9d9"/>';
@@ -1139,45 +1170,171 @@ function veRealtime(ds) {
     const y = yP(v); g += '<line x1="' + L + '" x2="' + (W-R) + '" y1="' + y
       + '" y2="' + y + '" stroke="#e8e8e8"/><text x="' + (L-8) + '" y="' + (y+4)
       + '" text-anchor="end" font-size="11">' + v + '</text>'; });
-  g += '<path d="' + path(function (d) { return yP(d.power_mw); })
-    + '" fill="none" stroke="#1f4e79" stroke-width="2.5"/>'
-    + '<path d="' + path(function (d) { return yG(d.ghi_wm2); })
-    + '" fill="none" stroke="#c55a11" stroke-width="1.8" stroke-dasharray="5 3"/>';
+  g += '<path d="' + path('past') + '" fill="none" stroke="#7f8c8d" stroke-width="2"/>'
+    + '<path d="' + path('updated') + '" fill="none" stroke="#548235" stroke-width="2.5"/>'
+    + '<path d="' + path('previous') + '" fill="none" stroke="#c55a11" stroke-width="2" stroke-dasharray="6 4"/>'
+    + '<path d="' + path('latest') + '" fill="none" stroke="#1f4e79" stroke-width="3"/>'
+    + cham('past', '#7f8c8d') + cham('updated', '#548235')
+    + cham('previous', '#c55a11') + cham('latest', '#1f4e79');
+  let iHienTai = -1, bayGio = Date.now();
+  ds.forEach(function (d, i) { if (new Date(d.time).getTime() <= bayGio) iHienTai = i; });
+  if (iHienTai >= 0 && iHienTai < ds.length - 1) {
+    const xNow = x(iHienTai);
+    g += '<line x1="' + xNow + '" x2="' + xNow + '" y1="' + T + '" y2="' + (T+ph)
+      + '" stroke="#c00000" stroke-width="1.5"/><text x="' + (xNow+4) + '" y="'
+      + (T+13) + '" fill="#c00000" font-size="10">Hiện tại</text>';
+  }
   ds.forEach(function (d, i) {
     if (i === 0 || i === ds.length - 1 || i % Math.max(1, Math.ceil(ds.length / 6)) === 0) {
       const nhan = String(d.time).slice(11, 16);
       g += '<text x="' + x(i) + '" y="' + (Hh-12) + '" text-anchor="middle" font-size="11">'
         + nhan + '</text>'; }
   });
-  return g + '<text x="' + (L+8) + '" y="14" fill="#1f4e79" font-size="11">'
-    + '━ Công suất (MW)</text><text x="' + (L+135) + '" y="14" fill="#c55a11" font-size="11">'
-    + '┄ Bức xạ (W/m²)</text></svg>';
+  return g + '<text x="' + (L+8) + '" y="14" fill="#1f4e79" font-size="11">━ Mới nhất</text>'
+    + '<text x="' + (L+95) + '" y="14" fill="#c55a11" font-size="11">┄ Trước đó</text>'
+    + '<text x="' + (L+185) + '" y="14" fill="#548235" font-size="11">━ Thời tiết hồi cứu/cập nhật</text>'
+    + '<text x="' + (L+355) + '" y="14" fill="#7f8c8d" font-size="11">━ Đã phát hành</text></svg>';
 }
 
-async function capNhatRealtime() {
-  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
-  $('#rt-status').textContent = 'Đang cập nhật…';
-  try {
-    const r = await fetch('/realtime?thuat_toan=' + encodeURIComponent(ma));
-    const kq = await r.json();
-    if (!r.ok || kq.loi) throw new Error(kq.loi || ('HTTP ' + r.status));
-    const d = kq.diem;
+function napChuoiRealtime(kq) {
+  const map = {};
+  const gan = function (ds, ten) { (ds || []).forEach(function (d) {
+    if (!map[d.time]) map[d.time] = {time:d.time};
+    map[d.time][ten] = d.power_mw; map[d.time][ten + 'Ghi'] = d.ghi_wm2;
+  }); };
+  gan(kq.past_forecast, 'past');
+  gan(kq.weather_updated, 'updated');
+  gan(kq.previous_forecast, 'previous');
+  gan(kq.latest_forecast, 'latest');
+  const pad = function (v) { return String(v).padStart(2, '0'); };
+  const homNay = new Date();
+  const batDau = new Date(homNay.getFullYear(), homNay.getMonth(), homNay.getDate(), 5, 0, 0);
+  const cacMoc = Object.keys(map).sort();
+  const cuoiCoDuLieu = cacMoc.length ? new Date(cacMoc[cacMoc.length - 1]) : batDau;
+  const toiThieu = new Date(homNay.getTime() + 4 * 60 * 60 * 1000);
+  const ketThuc = cuoiCoDuLieu > toiThieu ? cuoiCoDuLieu : toiThieu;
+  for (let t = new Date(batDau); t <= ketThuc; t.setMinutes(t.getMinutes() + 15)) {
+    const key = t.getFullYear() + '-' + pad(t.getMonth()+1) + '-' + pad(t.getDate())
+      + 'T' + pad(t.getHours()) + ':' + pad(t.getMinutes()) + ':00';
+    if (!map[key]) map[key] = {time:key};
+  }
+  return Object.keys(map).sort().map(function (t) { return map[t]; });
+}
+
+function gioiHanKhungRealtime() {
+  rtSoDiem = Math.max(8, Math.min(Math.max(8, rtTatCa.length), rtSoDiem));
+  rtBatDau = Math.max(0, Math.min(Math.max(0, rtTatCa.length - rtSoDiem), rtBatDau));
+}
+
+function veKhungRealtime() {
+  gioiHanKhungRealtime();
+  const ds = rtTatCa.slice(rtBatDau, rtBatDau + rtSoDiem);
+  $('#rt-chart').innerHTML = veRealtime(ds);
+  const max = Math.max(0, rtTatCa.length - rtSoDiem);
+  $('#rt-scroll').max = max;
+  $('#rt-scroll').value = rtBatDau;
+  $('#rt-prev').disabled = rtBatDau <= 0;
+  $('#rt-next').disabled = rtBatDau >= max;
+  $('#rt-range').textContent = ds.length
+    ? String(ds[0].time).replace('T', ' ').slice(0, 16) + ' → '
+      + String(ds[ds.length - 1].time).replace('T', ' ').slice(0, 16)
+    : 'Chưa có dữ liệu';
+
+  const lop = $('#rt-chart svg');
+  if (!lop) return;
+  let x0 = null, batDau0 = 0;
+  lop.addEventListener('pointerdown', function (e) {
+    x0 = e.clientX; batDau0 = rtBatDau; lop.setPointerCapture(e.pointerId);
+    lop.style.cursor = 'grabbing';
+  });
+  lop.addEventListener('pointermove', function (e) {
+    if (x0 === null) return;
+    const rong = Math.max(1, lop.getBoundingClientRect().width);
+    rtBatDau = Math.round(batDau0 - (e.clientX - x0) / rong * rtSoDiem);
+    gioiHanKhungRealtime();
+    $('#rt-scroll').value = rtBatDau;
+  });
+  lop.addEventListener('pointerup', function () { x0 = null; lop.style.cursor = 'grab'; veKhungRealtime(); });
+  lop.addEventListener('wheel', function (e) {
+    e.preventDefault(); zoomRealtime(e.deltaY < 0 ? 0.5 : 2);
+  }, {passive:false});
+}
+
+function zoomRealtime(heSo) {
+  if (!rtTatCa.length) return;
+  const tam = rtBatDau + rtSoDiem / 2;
+  rtSoDiem = Math.round(rtSoDiem * heSo);
+  rtSoDiem = Math.max(8, Math.min(rtTatCa.length, rtSoDiem));
+  rtBatDau = Math.round(tam - rtSoDiem / 2);
+  veKhungRealtime();
+}
+
+$('#rt-prev').addEventListener('click', function () { rtBatDau -= Math.max(1, rtSoDiem / 2); veKhungRealtime(); });
+$('#rt-next').addEventListener('click', function () { rtBatDau += Math.max(1, rtSoDiem / 2); veKhungRealtime(); });
+$('#rt-zoom-in').addEventListener('click', function () { zoomRealtime(0.5); });
+$('#rt-zoom-out').addEventListener('click', function () { zoomRealtime(2); });
+$('#rt-latest').addEventListener('click', function () {
+  rtBatDau = Math.max(0, rtTatCa.length - rtSoDiem); veKhungRealtime();
+});
+$('#rt-scroll').addEventListener('input', function () {
+  rtBatDau = Number(this.value); veKhungRealtime();
+});
+
+function apDungRealtime(kq, veMoiNhat) {
+  const dangOPhiaMoi = rtBatDau + rtSoDiem >= rtTatCa.length;
+  rtTatCa = napChuoiRealtime(kq);
+  if (!rtDaDatHomNay && rtTatCa.length) {
+    const n = new Date(), pad = function (v) { return String(v).padStart(2, '0'); };
+    const moc5 = n.getFullYear() + '-' + pad(n.getMonth()+1) + '-' + pad(n.getDate()) + 'T05:00';
+    const i5 = rtTatCa.findIndex(function (d) { return String(d.time).slice(0, 16) >= moc5; });
+    rtBatDau = Math.max(0, i5);
+    rtSoDiem = Math.max(8, rtTatCa.length - rtBatDau);
+    rtDaDatHomNay = true;
+  } else if (dangOPhiaMoi) rtBatDau = Math.max(0, rtTatCa.length - rtSoDiem);
+  veKhungRealtime();
+  if (veMoiNhat && kq.current) {
+    const d = kq.current;
     $('#rt-power').textContent = Number(d.power_mw).toFixed(2) + ' MW';
     $('#rt-ghi').textContent = Number(d.ghi_wm2).toFixed(0) + ' W/m²';
     $('#rt-temp').textContent = d.temperature_c === null ? '—' : d.temperature_c + ' °C';
     $('#rt-cloud').textContent = d.cloud_pct === null ? '—' : d.cloud_pct + '%';
-    $('#rt-chart').innerHTML = veRealtime(kq.lich_su);
-    $('#rt-status').textContent = 'Cập nhật lúc ' + String(d.time).replace('T', ' ')
-      + ' · tự làm mới sau 15 phút · ' + kq.nguon;
-  } catch (e) {
-    $('#rt-status').textContent = 'Không cập nhật được realtime: ' + e.message;
   }
 }
 
+async function taiLichSuRealtime() {
+  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  $('#rt-status').textContent = 'Đang tải lịch sử SQLite…';
+  try {
+    const r = await fetch('/realtime/history?thuat_toan=' + encodeURIComponent(ma));
+    const kq = await r.json();
+    if (!r.ok || kq.loi) throw new Error(kq.loi || ('HTTP ' + r.status));
+    apDungRealtime(kq, false);
+    $('#rt-status').textContent = rtTatCa.length ? 'Đã tải lịch sử SQLite. Đang lấy dự báo mới…'
+      : 'Chưa có lịch sử. Đang phát hành lượt dự báo đầu tiên…';
+  } catch (e) {
+    $('#rt-status').textContent = 'Không tải được lịch sử: ' + e.message;
+  }
+}
+
+async function capNhatRealtime() {
+  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  try {
+    const r = await fetch('/realtime/update', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify({thuat_toan:ma})});
+    const kq = await r.json();
+    if (!r.ok || kq.loi) throw new Error(kq.loi || ('HTTP ' + r.status));
+    apDungRealtime(kq, true);
+    $('#rt-status').textContent = 'Phát hành lúc ' + String(kq.latest_issued_at).replace('T', ' ')
+      + ' · 16 điểm cho 4 giờ tới · tự làm mới sau 15 phút';
+  } catch (e) { $('#rt-status').textContent += ' · Không phát hành được lượt mới: ' + e.message; }
+}
+
 document.querySelectorAll('input[name=thuat_toan]').forEach(function (o) {
-  o.addEventListener('change', capNhatRealtime);
+  o.addEventListener('change', async function () {
+    rtDaDatHomNay = false; await taiLichSuRealtime(); capNhatRealtime();
+  });
 });
-capNhatRealtime();
+taiLichSuRealtime().then(capNhatRealtime);
 setInterval(capNhatRealtime, 15 * 60 * 1000);
 </script>
 </body>
