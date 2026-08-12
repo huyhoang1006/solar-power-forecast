@@ -1,0 +1,1275 @@
+{
+ "meta": {
+  "db": "MEAS",
+  "server": "16.3",
+  "created": "2026-07-17 09:28:22",
+  "archive": "1.15.0",
+  "dump_bytes": 152426713,
+  "n_toc_tables": 19,
+  "total_rows": 6564535,
+  "total_csv_bytes": 849885575
+ },
+ "tables": [
+  {
+   "name": "Annotations",
+   "ncol": 26,
+   "rows": 0,
+   "bytes": 237
+  },
+  {
+   "name": "CMB",
+   "ncol": 1600,
+   "rows": 0,
+   "bytes": 60032
+  },
+  {
+   "name": "His_131",
+   "ncol": 18,
+   "rows": 521103,
+   "bytes": 111499597
+  },
+  {
+   "name": "His_431",
+   "ncol": 18,
+   "rows": 524153,
+   "bytes": 76184492
+  },
+  {
+   "name": "His_431A",
+   "ncol": 9,
+   "rows": 250035,
+   "bytes": 30586936
+  },
+  {
+   "name": "His_432",
+   "ncol": 9,
+   "rows": 256833,
+   "bytes": 31201721
+  },
+  {
+   "name": "His_433",
+   "ncol": 9,
+   "rows": 247714,
+   "bytes": 30417016
+  },
+  {
+   "name": "His_434",
+   "ncol": 9,
+   "rows": 251480,
+   "bytes": 30582391
+  },
+  {
+   "name": "His_435",
+   "ncol": 9,
+   "rows": 250906,
+   "bytes": 30716925
+  },
+  {
+   "name": "His_436",
+   "ncol": 9,
+   "rows": 256360,
+   "bytes": 31328764
+  },
+  {
+   "name": "His_437",
+   "ncol": 9,
+   "rows": 252343,
+   "bytes": 30572695
+  },
+  {
+   "name": "His_471",
+   "ncol": 15,
+   "rows": 519225,
+   "bytes": 55901459
+  },
+  {
+   "name": "His_473",
+   "ncol": 15,
+   "rows": 519201,
+   "bytes": 55424047
+  },
+  {
+   "name": "His_475",
+   "ncol": 15,
+   "rows": 519127,
+   "bytes": 55730704
+  },
+  {
+   "name": "His_477",
+   "ncol": 15,
+   "rows": 519159,
+   "bytes": 55735172
+  },
+  {
+   "name": "His_T1",
+   "ncol": 9,
+   "rows": 523932,
+   "bytes": 48925167
+  },
+  {
+   "name": "His_TUC41",
+   "ncol": 8,
+   "rows": 521569,
+   "bytes": 54813217
+  },
+  {
+   "name": "His_report",
+   "ncol": 69,
+   "rows": 107307,
+   "bytes": 42417322
+  },
+  {
+   "name": "Weather",
+   "ncol": 32,
+   "rows": 524088,
+   "bytes": 77787681
+  }
+ ],
+ "time": [
+  {
+   "table": "His_131",
+   "rows": 521103,
+   "ncol": 18,
+   "t0": "2025-07-12 16:37:05",
+   "t1": "2026-07-17 02:27:08",
+   "span_days": 369.4,
+   "nominal_s": 60,
+   "pct_nominal": 99.5,
+   "coverage": 98.0,
+   "dup_ts": 0,
+   "n_back": 5108,
+   "block": 72,
+   "block_n": 4540,
+   "n_gap": 70,
+   "gap_h": 182.2,
+   "maxgap_h": 70.4,
+   "id_contiguous": true,
+   "id_max": 521102,
+   "top_int": "60s: 99.5%; 61s: 0.3%; 0s: 0.0%"
+  },
+  {
+   "table": "His_431",
+   "rows": 524153,
+   "ncol": 18,
+   "t0": "2025-07-12 04:54:58",
+   "t1": "2026-07-17 02:27:08",
+   "span_days": 369.9,
+   "nominal_s": 60,
+   "pct_nominal": 99.3,
+   "coverage": 98.4,
+   "dup_ts": 0,
+   "n_back": 5093,
+   "block": 72,
+   "block_n": 4493,
+   "n_gap": 68,
+   "gap_h": 145.2,
+   "maxgap_h": 70.4,
+   "id_contiguous": true,
+   "id_max": 524152,
+   "top_int": "60s: 99.3%; 61s: 0.4%; 59s: 0.1%"
+  },
+  {
+   "table": "His_431A",
+   "rows": 250035,
+   "ncol": 9,
+   "t0": "2025-07-05 09:49:41",
+   "t1": "2026-07-17 02:27:08",
+   "span_days": 376.7,
+   "nominal_s": 60,
+   "pct_nominal": 97.6,
+   "coverage": 46.1,
+   "dup_ts": 0,
+   "n_back": 1967,
+   "block": 113,
+   "block_n": 1709,
+   "n_gap": 507,
+   "gap_h": 4881.6,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 250034,
+   "top_int": "60s: 97.6%; 61s: 0.7%; 59s: 0.2%"
+  },
+  {
+   "table": "His_432",
+   "rows": 256833,
+   "ncol": 9,
+   "t0": "2025-07-14 22:30:46",
+   "t1": "2026-07-17 02:27:08",
+   "span_days": 367.2,
+   "nominal_s": 60,
+   "pct_nominal": 97.7,
+   "coverage": 48.6,
+   "dup_ts": 0,
+   "n_back": 1803,
+   "block": 113,
+   "block_n": 1475,
+   "n_gap": 477,
+   "gap_h": 4539.6,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 256832,
+   "top_int": "60s: 97.7%; 61s: 0.6%; 59s: 0.2%"
+  },
+  {
+   "table": "His_433",
+   "rows": 247714,
+   "ncol": 9,
+   "t0": "2025-07-09 23:38:34",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 372.1,
+   "nominal_s": 60,
+   "pct_nominal": 97.5,
+   "coverage": 46.2,
+   "dup_ts": 0,
+   "n_back": 1747,
+   "block": 113,
+   "block_n": 1484,
+   "n_gap": 508,
+   "gap_h": 4809.8,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 247713,
+   "top_int": "60s: 97.5%; 61s: 0.7%; 59s: 0.3%"
+  },
+  {
+   "table": "His_434",
+   "rows": 251480,
+   "ncol": 9,
+   "t0": "2025-07-09 05:48:46",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 372.9,
+   "nominal_s": 60,
+   "pct_nominal": 97.3,
+   "coverage": 46.8,
+   "dup_ts": 0,
+   "n_back": 1848,
+   "block": 113,
+   "block_n": 1568,
+   "n_gap": 533,
+   "gap_h": 4765.0,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 251479,
+   "top_int": "60s: 97.3%; 61s: 0.7%; 59s: 0.3%"
+  },
+  {
+   "table": "His_435",
+   "rows": 250906,
+   "ncol": 9,
+   "t0": "2025-07-10 22:28:48",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 371.2,
+   "nominal_s": 60,
+   "pct_nominal": 96.8,
+   "coverage": 46.9,
+   "dup_ts": 0,
+   "n_back": 1772,
+   "block": 113,
+   "block_n": 1512,
+   "n_gap": 884,
+   "gap_h": 4733.4,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 250905,
+   "top_int": "60s: 96.8%; 61s: 0.7%; 59s: 0.3%"
+  },
+  {
+   "table": "His_436",
+   "rows": 256360,
+   "ncol": 9,
+   "t0": "2025-07-06 00:59:08",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 376.1,
+   "nominal_s": 60,
+   "pct_nominal": 97.1,
+   "coverage": 47.3,
+   "dup_ts": 0,
+   "n_back": 2015,
+   "block": 113,
+   "block_n": 1796,
+   "n_gap": 555,
+   "gap_h": 4757.5,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 256359,
+   "top_int": "60s: 97.1%; 61s: 0.8%; 59s: 0.3%"
+  },
+  {
+   "table": "His_437",
+   "rows": 252343,
+   "ncol": 9,
+   "t0": "2025-07-16 06:58:05",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 365.8,
+   "nominal_s": 60,
+   "pct_nominal": 97.3,
+   "coverage": 47.9,
+   "dup_ts": 0,
+   "n_back": 1640,
+   "block": 113,
+   "block_n": 1354,
+   "n_gap": 518,
+   "gap_h": 4578.2,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 252342,
+   "top_int": "60s: 97.3%; 61s: 0.6%; 59s: 0.3%"
+  },
+  {
+   "table": "His_471",
+   "rows": 519225,
+   "ncol": 15,
+   "t0": "2025-07-05 17:35:04",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 376.4,
+   "nominal_s": 60,
+   "pct_nominal": 97.8,
+   "coverage": 95.8,
+   "dup_ts": 0,
+   "n_back": 542,
+   "block": 84,
+   "block_n": 222,
+   "n_gap": 140,
+   "gap_h": 350.7,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 519224,
+   "top_int": "60s: 97.8%; 61s: 0.6%; 59s: 0.2%"
+  },
+  {
+   "table": "His_473",
+   "rows": 519201,
+   "ncol": 15,
+   "t0": "2025-07-05 18:53:05",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 376.3,
+   "nominal_s": 60,
+   "pct_nominal": 97.7,
+   "coverage": 95.8,
+   "dup_ts": 0,
+   "n_back": 523,
+   "block": 84,
+   "block_n": 223,
+   "n_gap": 151,
+   "gap_h": 349.6,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 519200,
+   "top_int": "60s: 97.7%; 61s: 0.6%; 59s: 0.2%"
+  },
+  {
+   "table": "His_475",
+   "rows": 519127,
+   "ncol": 15,
+   "t0": "2025-07-05 18:45:05",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 376.3,
+   "nominal_s": 60,
+   "pct_nominal": 97.5,
+   "coverage": 95.8,
+   "dup_ts": 0,
+   "n_back": 526,
+   "block": 84,
+   "block_n": 225,
+   "n_gap": 159,
+   "gap_h": 350.2,
+   "maxgap_h": 262.0,
+   "id_contiguous": true,
+   "id_max": 519126,
+   "top_int": "60s: 97.5%; 61s: 0.7%; 59s: 0.2%"
+  },
+  {
+   "table": "His_477",
+   "rows": 519159,
+   "ncol": 15,
+   "t0": "2025-07-05 19:56:05",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 376.3,
+   "nominal_s": 60,
+   "pct_nominal": 97.5,
+   "coverage": 95.8,
+   "dup_ts": 0,
+   "n_back": 522,
+   "block": 84,
+   "block_n": 224,
+   "n_gap": 160,
+   "gap_h": 350.4,
+   "maxgap_h": 261.9,
+   "id_contiguous": true,
+   "id_max": 519158,
+   "top_int": "60s: 97.5%; 61s: 0.7%; 59s: 0.3%"
+  },
+  {
+   "table": "His_T1",
+   "rows": 523932,
+   "ncol": 9,
+   "t0": "2025-07-10 06:47:37",
+   "t1": "2026-07-15 18:02:56",
+   "span_days": 370.5,
+   "nominal_s": 60,
+   "pct_nominal": 97.7,
+   "coverage": 98.2,
+   "dup_ts": 0,
+   "n_back": 3439,
+   "block": 101,
+   "block_n": 3051,
+   "n_gap": 146,
+   "gap_h": 154.2,
+   "maxgap_h": 71.4,
+   "id_contiguous": true,
+   "id_max": 523931,
+   "top_int": "60s: 97.7%; 61s: 0.8%; 59s: 0.3%"
+  },
+  {
+   "table": "His_TUC41",
+   "rows": 521569,
+   "ncol": 8,
+   "t0": "2025-07-06 07:03:59",
+   "t1": "2026-07-15 20:49:57",
+   "span_days": 374.6,
+   "nominal_s": 60,
+   "pct_nominal": 96.9,
+   "coverage": 96.7,
+   "dup_ts": 3,
+   "n_back": 3438,
+   "block": 113,
+   "block_n": 3153,
+   "n_gap": 89,
+   "gap_h": 277.1,
+   "maxgap_h": 70.4,
+   "id_contiguous": true,
+   "id_max": 521568,
+   "top_int": "60s: 96.9%; 61s: 0.8%; 59s: 0.3%"
+  },
+  {
+   "table": "His_report",
+   "rows": 107307,
+   "ncol": 69,
+   "t0": "2025-07-13 20:52:45",
+   "t1": "2026-07-17 02:25:49",
+   "span_days": 368.2,
+   "nominal_s": 300,
+   "pct_nominal": 96.8,
+   "coverage": 101.2,
+   "dup_ts": 0,
+   "n_back": 2979,
+   "block": 25,
+   "block_n": 1803,
+   "n_gap": 10,
+   "gap_h": 87.6,
+   "maxgap_h": 70.5,
+   "id_contiguous": true,
+   "id_max": 107306,
+   "top_int": "300s: 96.8%; 0s: 2.0%; 301s: 0.8%"
+  },
+  {
+   "table": "Weather",
+   "rows": 524088,
+   "ncol": 32,
+   "t0": "2025-07-12 14:58:42",
+   "t1": "2026-07-17 02:27:09",
+   "span_days": 369.5,
+   "nominal_s": 60,
+   "pct_nominal": 98.4,
+   "coverage": 98.5,
+   "dup_ts": 0,
+   "n_back": 5068,
+   "block": 72,
+   "block_n": 3852,
+   "n_gap": 79,
+   "gap_h": 133.2,
+   "maxgap_h": 70.4,
+   "id_contiguous": true,
+   "id_max": 524087,
+   "top_int": "60s: 98.4%; 61s: 0.7%; 59s: 0.3%"
+  }
+ ],
+ "after_sort": {
+  "back": 0,
+  "p50": 60.007,
+  "p95": 60.234,
+  "p99": 60.375,
+  "gap10m": 23,
+  "t0": "2025-07-12 16:37:05.237",
+  "t1": "2026-07-17 02:27:08.892"
+ },
+ "topology": [
+  {
+   "label": "Bay131 — 110kV, điểm đấu nối",
+   "n": 130465,
+   "mean": 22.38,
+   "max": 39.27,
+   "r": 1.0,
+   "bias": 0.0
+  },
+  {
+   "label": "Bay431 — 22kV tổng",
+   "n": 131159,
+   "mean": 22.41,
+   "max": 39.54,
+   "r": 0.9998,
+   "bias": 0.105
+  },
+  {
+   "label": "Tổng 471+473+475+477",
+   "n": 130339,
+   "mean": 23.15,
+   "max": 39.78,
+   "r": 0.9984,
+   "bias": 0.277
+  },
+  {
+   "label": "Tổng 431A…437",
+   "n": 121029,
+   "mean": 23.42,
+   "max": 123.27,
+   "r": 0.9987,
+   "bias": 0.346
+  }
+ ],
+ "feeders": [
+  {
+   "bay": "431A",
+   "mean": 3.74,
+   "max": 100.0
+  },
+  {
+   "bay": "432",
+   "mean": 3.58,
+   "max": 6.29
+  },
+  {
+   "bay": "433",
+   "mean": 3.71,
+   "max": 6.29
+  },
+  {
+   "bay": "434",
+   "mean": 3.6,
+   "max": 6.28
+  },
+  {
+   "bay": "435",
+   "mean": 3.62,
+   "max": 6.29
+  },
+  {
+   "bay": "436",
+   "mean": 3.66,
+   "max": 6.28
+  },
+  {
+   "bay": "437",
+   "mean": 1.38,
+   "max": 2.52
+  },
+  {
+   "bay": "471",
+   "mean": 7.3,
+   "max": 12.52
+  },
+  {
+   "bay": "473",
+   "mean": 3.68,
+   "max": 6.27
+  },
+  {
+   "bay": "475",
+   "mean": 4.93,
+   "max": 8.73
+  },
+  {
+   "bay": "477",
+   "mean": 7.22,
+   "max": 12.47
+  }
+ ],
+ "n_day_samples": 133620,
+ "curtail": [
+  {
+   "bin": "50–200",
+   "n": 11065,
+   "mean": 4.15,
+   "std": 2.98,
+   "max": 32.51
+  },
+  {
+   "bin": "200–400",
+   "n": 20436,
+   "mean": 12.34,
+   "std": 4.5,
+   "max": 36.11
+  },
+  {
+   "bin": "400–600",
+   "n": 17133,
+   "mean": 19.29,
+   "std": 5.18,
+   "max": 36.95
+  },
+  {
+   "bin": "600–800",
+   "n": 23115,
+   "mean": 25.93,
+   "std": 5.64,
+   "max": 38.92
+  },
+  {
+   "bin": "800–1000",
+   "n": 47495,
+   "mean": 31.65,
+   "std": 6.54,
+   "max": 39.26
+  },
+  {
+   "bin": "1000–1400",
+   "n": 4402,
+   "mean": 29.5,
+   "std": 8.94,
+   "max": 39.27
+  }
+ ],
+ "dead": [
+  {
+   "table": "His_431",
+   "column": "Substation_Level_22kV_Bay431_MEAS_In",
+   "null": 0.035,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_471",
+   "column": "Substation_Level_22kV_Bay471_Meas_Uc",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_471",
+   "column": "Substation_Level_22kV_Bay471_Meas_Ub",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_471",
+   "column": "Substation_Level_22kV_Bay471_Meas_Ua",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_473",
+   "column": "Substation_Level_22kV_Bay473_Meas_Uc",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_473",
+   "column": "Substation_Level_22kV_Bay473_Meas_Ub",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_473",
+   "column": "Substation_Level_22kV_Bay473_Meas_Ua",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_475",
+   "column": "Substation_Level_22kV_Bay475_Meas_Uc",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_475",
+   "column": "Substation_Level_22kV_Bay475_Meas_Ub",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_475",
+   "column": "Substation_Level_22kV_Bay475_Meas_Ua",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_477",
+   "column": "Substation_Level_22kV_Bay477_Meas_In",
+   "null": 0.037,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_477",
+   "column": "Substation_Level_22kV_Bay477_Meas_Uc",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_477",
+   "column": "Substation_Level_22kV_Bay477_Meas_Ub",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_477",
+   "column": "Substation_Level_22kV_Bay477_Meas_Ua",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_T1",
+   "column": "Substation_Level_110kV_BayT1_T1_MEAS_Tap",
+   "null": 0.064,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_T1",
+   "column": "Substation_Level_110kV_BayT1_T1_MEAS_MVTemp",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_report",
+   "column": "IEC104S_IEC104S_AI_P_LOW",
+   "null": 0.089,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_report",
+   "column": "Substation_Level_110kV_BayT1_T1_MEAS_Tap",
+   "null": 0.078,
+   "note": "hằng số"
+  },
+  {
+   "table": "His_report",
+   "column": "Substation_Level_110kV_BayT1_T1_MEAS_MVTemp",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS2_Wind_Speed",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS2_Wind_direction",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS2_Rad_2",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS2_Panel_T",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS2_Humidity",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS2_Air_T",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS2_Air_Pressure",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Wind_Speed",
+   "null": 93.17,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Wind_direction",
+   "null": 93.17,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Rad_2",
+   "null": 93.17,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Rad_1",
+   "null": 93.17,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Panel_T",
+   "null": 93.17,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Humidity",
+   "null": 93.17,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Air_T",
+   "null": 93.17,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Air_Pressure",
+   "null": 100.0,
+   "note": "hằng số"
+  },
+  {
+   "table": "Weather",
+   "column": "IEC104S_IEC104S_AI_P_LOW",
+   "null": 0.026,
+   "note": "hằng số"
+  }
+ ],
+ "spike": [
+  {
+   "table": "His_431A",
+   "column": "Substation_Level_22kV_Bay431A_MEAS_P",
+   "p99": 6.142571,
+   "max": 4410466.0,
+   "ratio": 718016
+  },
+  {
+   "table": "His_report",
+   "column": "Data_PR",
+   "p99": 122.032718,
+   "max": 54108.24,
+   "ratio": 443
+  },
+  {
+   "table": "Weather",
+   "column": "SOLAR_WS_Panel_T",
+   "p99": 52.201,
+   "max": 6553.5,
+   "ratio": 126
+  }
+ ],
+ "irr": [
+  {
+   "table": "His_report",
+   "column": "SOLAR_WS_Rad_2",
+   "null": 0.089,
+   "zero": 46.637,
+   "p50": 20.480318,
+   "p99": 1033.623224,
+   "max": 1397.2705,
+   "mean": 239.468255
+  },
+  {
+   "table": "His_report",
+   "column": "SOLAR_WS_Rad_1",
+   "null": 4.297,
+   "zero": 48.2,
+   "p50": 1.0,
+   "p99": 981.01,
+   "max": 1346.0,
+   "mean": 211.987556
+  },
+  {
+   "table": "His_report",
+   "column": "SOLAR_WSRT1_Rad_1",
+   "null": 29.519,
+   "zero": 30.325,
+   "p50": 134.0,
+   "p99": 1042.01,
+   "max": 1501.0,
+   "mean": 289.660655
+  },
+  {
+   "table": "Weather",
+   "column": "SOLAR_WS_Rad_2",
+   "null": 0.026,
+   "zero": 47.033,
+   "p50": 12.934999,
+   "p99": 1027.660911,
+   "max": 1453.469,
+   "mean": 237.801854
+  },
+  {
+   "table": "Weather",
+   "column": "SOLAR_WS_Rad_1",
+   "null": 3.995,
+   "zero": 48.842,
+   "p50": 4.0,
+   "p99": 984.0,
+   "max": 1401.0,
+   "mean": 209.140079
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS2_Rad_2",
+   "null": 100.0,
+   "zero": null,
+   "p50": null,
+   "p99": null,
+   "max": null,
+   "mean": null
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Rad_2",
+   "null": 93.17,
+   "zero": 0.0,
+   "p50": 600.0,
+   "p99": 600.0,
+   "max": 600.0,
+   "mean": 600.0
+  },
+  {
+   "table": "Weather",
+   "column": "Data_WS1_Rad_1",
+   "null": 93.17,
+   "zero": 0.0,
+   "p50": 632.0,
+   "p99": 632.0,
+   "max": 632.0,
+   "mean": 632.0
+  }
+ ],
+ "zero_issue": [
+  {
+   "table": "His_131",
+   "column": "Substation_Level_110kV_Bay131_MEAS_P",
+   "zero": 0.002,
+   "neg": 17.988
+  },
+  {
+   "table": "His_431",
+   "column": "Substation_Level_22kV_Bay431_MEAS_P",
+   "zero": 59.811,
+   "neg": 0.015
+  },
+  {
+   "table": "His_431A",
+   "column": "Substation_Level_22kV_Bay431A_MEAS_P",
+   "zero": 0.236,
+   "neg": 0.0
+  },
+  {
+   "table": "His_432",
+   "column": "Substation_Level_22kV_Bay432_MEAS_P",
+   "zero": 0.266,
+   "neg": 0.0
+  },
+  {
+   "table": "His_433",
+   "column": "Substation_Level_22kV_Bay433_MEAS_P",
+   "zero": 0.242,
+   "neg": 0.0
+  },
+  {
+   "table": "His_434",
+   "column": "Substation_Level_22kV_Bay434_MEAS_P",
+   "zero": 0.293,
+   "neg": 0.0
+  },
+  {
+   "table": "His_435",
+   "column": "Substation_Level_22kV_Bay435_MEAS_P",
+   "zero": 0.277,
+   "neg": 0.0
+  },
+  {
+   "table": "His_436",
+   "column": "Substation_Level_22kV_Bay436_MEAS_P",
+   "zero": 0.262,
+   "neg": 0.0
+  },
+  {
+   "table": "His_437",
+   "column": "Substation_Level_22kV_Bay437_MEAS_P",
+   "zero": 0.298,
+   "neg": 0.0
+  },
+  {
+   "table": "His_471",
+   "column": "Substation_Level_22kV_Bay471_Meas_P",
+   "zero": 57.416,
+   "neg": 0.022
+  },
+  {
+   "table": "His_473",
+   "column": "Substation_Level_22kV_Bay473_Meas_P",
+   "zero": 59.203,
+   "neg": 0.011
+  },
+  {
+   "table": "His_475",
+   "column": "Substation_Level_22kV_Bay475_Meas_P",
+   "zero": 58.42,
+   "neg": 0.016
+  },
+  {
+   "table": "His_477",
+   "column": "Substation_Level_22kV_Bay477_Meas_P",
+   "zero": 57.57,
+   "neg": 0.021
+  },
+  {
+   "table": "His_report",
+   "column": "IEC104S_IEC104S_AO_A0_P_SETPOINT",
+   "zero": 6.425,
+   "neg": 0.0
+  },
+  {
+   "table": "His_report",
+   "column": "IEC104S_IEC104S_AI_P_HIGH",
+   "zero": 43.204,
+   "neg": 0.0
+  },
+  {
+   "table": "His_report",
+   "column": "IEC104S_IEC104S_AI_P_LOW",
+   "zero": 0.0,
+   "neg": 0.0
+  },
+  {
+   "table": "His_report",
+   "column": "Substation_Level_22kV_Bay477_Meas_P",
+   "zero": 58.406,
+   "neg": 0.024
+  },
+  {
+   "table": "His_report",
+   "column": "Substation_Level_22kV_Bay475_Meas_P",
+   "zero": 59.243,
+   "neg": 0.02
+  },
+  {
+   "table": "His_report",
+   "column": "Substation_Level_22kV_Bay473_Meas_P",
+   "zero": 59.937,
+   "neg": 0.009
+  },
+  {
+   "table": "His_report",
+   "column": "Substation_Level_22kV_Bay471_Meas_P",
+   "zero": 58.197,
+   "neg": 0.024
+  },
+  {
+   "table": "His_report",
+   "column": "Substation_Level_22kV_Bay431_MEAS_P",
+   "zero": 59.411,
+   "neg": 0.015
+  },
+  {
+   "table": "His_report",
+   "column": "Substation_Level_110kV_Bay131_MEAS_P",
+   "zero": 0.968,
+   "neg": 17.539
+  },
+  {
+   "table": "Weather",
+   "column": "IEC104S_IEC104S_AO_A0_P_SETPOINT",
+   "zero": 6.5,
+   "neg": 0.0
+  },
+  {
+   "table": "Weather",
+   "column": "IEC104S_IEC104S_AI_P_HIGH",
+   "zero": 43.533,
+   "neg": 0.0
+  },
+  {
+   "table": "Weather",
+   "column": "IEC104S_IEC104S_AI_P_LOW",
+   "zero": 0.0,
+   "neg": 0.0
+  },
+  {
+   "table": "Weather",
+   "column": "IEC104S_IEC104S_SI_P_P_MW_MODE",
+   "zero": 0.01,
+   "neg": 0.0
+  }
+ ],
+ "diurnal": {
+  "SOLAR_WS_Rad_1": {
+   "0": 0.009,
+   "1": 0.012,
+   "2": 0.012,
+   "3": 0.01,
+   "4": 0.012,
+   "5": 5.435,
+   "6": 53.457,
+   "7": 184.229,
+   "8": 360.965,
+   "9": 517.192,
+   "10": 634.684,
+   "11": 669.257,
+   "12": 701.074,
+   "13": 678.456,
+   "14": 576.084,
+   "15": 389.231,
+   "16": 183.779,
+   "17": 33.069,
+   "18": 0.176,
+   "19": 0.019,
+   "20": 0.016,
+   "21": 0.021,
+   "22": 0.019,
+   "23": 0.011
+  },
+  "SOLAR_WS_Rad_2": {
+   "0": 25.914,
+   "1": 25.935,
+   "2": 25.889,
+   "3": 25.646,
+   "4": 25.496,
+   "5": 33.576,
+   "6": 85.028,
+   "7": 214.442,
+   "8": 390.759,
+   "9": 545.073,
+   "10": 657.679,
+   "11": 693.173,
+   "12": 727.306,
+   "13": 707.009,
+   "14": 606.729,
+   "15": 421.206,
+   "16": 217.407,
+   "17": 66.473,
+   "18": 29.482,
+   "19": 29.363,
+   "20": 29.225,
+   "21": 28.167,
+   "22": 26.457,
+   "23": 25.839
+  },
+  "SOLAR_WSRT1_Rad_1": {
+   "0": 0.0,
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0,
+   "4": 0.0,
+   "5": 9.066,
+   "6": 76.122,
+   "7": 209.051,
+   "8": 367.674,
+   "9": 510.03,
+   "10": 628.062,
+   "11": 703.356,
+   "12": 727.783,
+   "13": 659.789,
+   "14": 546.809,
+   "15": 378.056,
+   "16": 185.339,
+   "17": 36.104,
+   "18": 0.572,
+   "19": 0.0,
+   "20": 0.0,
+   "21": 0.0,
+   "22": 0.0,
+   "23": 0.0
+  },
+  "Substation_Level_110kV_Bay131_MEAS_P": {
+   "0": 0.071,
+   "1": 0.071,
+   "2": 0.071,
+   "3": 0.07,
+   "4": 0.07,
+   "5": 0.116,
+   "6": 1.25,
+   "7": 5.931,
+   "8": 12.509,
+   "9": 17.884,
+   "10": 21.797,
+   "11": 23.484,
+   "12": 24.436,
+   "13": 24.124,
+   "14": 21.019,
+   "15": 14.989,
+   "16": 7.392,
+   "17": 1.35,
+   "18": 0.088,
+   "19": 0.079,
+   "20": 0.077,
+   "21": 0.075,
+   "22": 0.073,
+   "23": 0.071
+  },
+  "SOLAR_WS_Panel_T": {
+   "0": 24.139,
+   "1": 23.927,
+   "2": 23.749,
+   "3": 23.633,
+   "4": 23.508,
+   "5": 23.536,
+   "6": 25.229,
+   "7": 29.416,
+   "8": 34.543,
+   "9": 38.153,
+   "10": 39.122,
+   "11": 36.414,
+   "12": 33.609,
+   "13": 33.264,
+   "14": 35.62,
+   "15": 36.339,
+   "16": 33.292,
+   "17": 28.682,
+   "18": 26.174,
+   "19": 25.483,
+   "20": 25.199,
+   "21": 24.933,
+   "22": 24.68,
+   "23": 24.45
+  },
+  "SOLAR_WS_Air_T": {
+   "0": 18.459,
+   "1": 18.392,
+   "2": 18.273,
+   "3": 18.224,
+   "4": 18.213,
+   "5": 18.18,
+   "6": 18.338,
+   "7": 18.954,
+   "8": 19.733,
+   "9": 20.387,
+   "10": 20.986,
+   "11": 21.352,
+   "12": 21.672,
+   "13": 21.53,
+   "14": 21.502,
+   "15": 21.08,
+   "16": 20.517,
+   "17": 19.675,
+   "18": 19.224,
+   "19": 19.02,
+   "20": 18.921,
+   "21": 18.848,
+   "22": 18.743,
+   "23": 18.587
+  }
+ },
+ "corr": {
+  "SOLAR_WS_Rad_1": 0.9598,
+  "SOLAR_WS_Rad_2": 0.8629,
+  "SOLAR_WSRT1_Rad_1": 0.9522,
+  "SOLAR_WS_Panel_T": 0.5465,
+  "SOLAR_WS_Air_T": 0.0345,
+  "SOLAR_WS_Humidity": -0.1822,
+  "SOLAR_WS_Wind_Speed": 0.2733,
+  "Substation_Level_110kV_Bay131_MEAS_P": 1.0
+ }
+}

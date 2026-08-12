@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Solar Forecast — Huấn luyện mô hình</title>
+<style>
+  :root {
+    --navy: #1f4e79; --grey: #595959; --line: #d9d9d9;
+    --bg: #f7f9fb; --ok: #548235; --warn: #c55a11; --err: #c00000;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Segoe UI, Roboto, sans-serif; margin: 0; background: var(--bg);
+         color: #222; font-size: 14px; line-height: 1.5; }
+  header { background: var(--navy); color: #fff; padding: 18px 28px; }
+  header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header p { margin: 4px 0 0; opacity: .75; font-size: 13px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 28px 60px; }
+  section { background: #fff; border: 1px solid var(--line); border-radius: 6px;
+            padding: 20px 22px; margin-bottom: 20px; }
+  h2 { font-size: 15px; color: var(--navy); margin: 0 0 14px; font-weight: 600; }
+  h3 { font-size: 13px; color: var(--grey); margin: 18px 0 8px; font-weight: 600; }
+  label { display: block; font-size: 13px; margin-bottom: 5px; color: var(--grey); }
+  select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 4px;
+           font-size: 14px; background: #fff; min-width: 250px; }
+  .hang { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-end; }
+  .thuat-toan { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                gap: 10px; margin-top: 4px; }
+  .the { border: 1px solid var(--line); border-radius: 5px; padding: 11px 13px;
+         cursor: pointer; transition: .12s; background: #fff; }
+  .the:hover { border-color: var(--navy); }
+  .the input { margin-right: 7px; }
+  .the.chon { border-color: var(--navy); background: #f2f6fa; }
+  .the b { font-size: 13.5px; }
+  .the span { display: block; color: var(--grey); font-size: 12px; margin-top: 4px; }
+  button { background: var(--navy); color: #fff; border: 0; border-radius: 4px;
+           padding: 10px 22px; font-size: 14px; cursor: pointer; font-weight: 500; }
+  button:hover { background: #17405f; }
+  button:disabled { background: #9bb3c6; cursor: not-allowed; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th { background: var(--navy); color: #fff; padding: 7px 9px; text-align: left;
+       font-weight: 500; font-size: 12px; }
+  td { padding: 6px 9px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .so { text-align: right; font-variant-numeric: tabular-nums; }
+  .nhan { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px;
+          font-weight: 600; }
+  .nhan-vao { background: #e3eef8; color: var(--navy); }
+  .nhan-dich { background: #e8f3e0; color: var(--ok); }
+  .chi-so { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px; margin-bottom: 16px; }
+  .o { border: 1px solid var(--line); border-radius: 5px; padding: 12px 14px; }
+  .o .ten { font-size: 11.5px; color: var(--grey); text-transform: uppercase;
+            letter-spacing: .3px; }
+  .o .gia-tri { font-size: 21px; font-weight: 600; color: var(--navy); margin-top: 3px; }
+  .o.nhan-manh { border-color: var(--navy); background: #f2f6fa; }
+  .loi { background: #fdf2f2; border-left: 4px solid var(--err); padding: 12px 15px;
+         white-space: pre-wrap; font-family: Consolas, monospace; font-size: 12px; }
+  .luu-y { background: #fdf6f0; border-left: 4px solid var(--warn); padding: 12px 15px;
+           font-size: 13px; margin-top: 14px; }
+  .mo { color: var(--grey); font-size: 12.5px; }
+
+  .nhat-ky { background: #1e1e1e; color: #d4d4d4; border-radius: 5px; padding: 16px 18px;
+             font-family: Consolas, "Courier New", monospace; font-size: 12.5px;
+             line-height: 1.7; white-space: pre-wrap; overflow-x: auto;
+             max-height: 480px; overflow-y: auto; }
+  .nhat-ky .buoc { color: #4ec9b0; font-weight: 600; }
+  .nhat-ky .xong { color: #b5cea8; font-weight: 600; }
+  .nhat-ky .chiso { color: #ce9178; }
+  .con-tro { display: inline-block; width: 8px; height: 14px; background: #d4d4d4;
+             vertical-align: -2px; animation: nhay 1s step-end infinite; }
+  @keyframes nhay { 50% { opacity: 0; } }
+  .dang-chay { display: none; align-items: center; gap: 10px; color: var(--navy);
+               font-size: 13px; }
+  .quay { width: 15px; height: 15px; border: 2px solid var(--line);
+          border-top-color: var(--navy); border-radius: 50%;
+          animation: xoay .7s linear infinite; }
+  @keyframes xoay { to { transform: rotate(360deg); } }
+  #khoi-nhat-ky, #khoi-ket-qua { display: none; }
+  .thang { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 4px; }
+  .thang label { display: inline-flex; align-items: center; gap: 5px; margin: 0;
+                 border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px;
+                 cursor: pointer; background: #fff; font-size: 12.5px; color: #222;
+                 user-select: none; transition: .12s; }
+  .thang label:hover { border-color: var(--navy); }
+  .thang label.chon { border-color: var(--warn); background: #fdf6f0;
+                      color: var(--warn); font-weight: 600; }
+  .thang label.khoa { opacity: .4; cursor: not-allowed; background: #f4f4f4; }
+  .thang input { margin: 0; }
+  .nhanh { display: flex; gap: 8px; margin-top: 8px; }
+  .nhanh a { font-size: 12.5px; color: var(--navy); cursor: pointer;
+             text-decoration: underline; }
+  .hai-bang { display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+              align-items: start; }
+  @media (max-width: 860px) { .hai-bang { grid-template-columns: 1fr; } }
+  .bang-cuon { max-height: 420px; overflow-y: auto; border: 1px solid var(--line);
+               border-radius: 4px; }
+  .bang-cuon th { position: sticky; top: 0; }
+  .am { color: var(--err); }
+  .duong { color: var(--ok); }
+  .bieu-do { width: 100%; height: 260px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Solar Forecast — Huấn luyện mô hình</h1>
+  <p>Nhà máy Fujiwara · 13,8634° N — 109,2708° E · 50 MWp một chiều / 40 MW xoay chiều</p>
+</header>
+
+<main>
+{% if loi %}<section><div class="loi">{{ loi }}</div></section>{% endif %}
+
+<section>
+  <h2>1. Thuật toán huấn luyện</h2>
+  <div class="thuat-toan">
+    {% for ma, ten in thuat_toan.items() %}
+    <label class="the {% if chon.thuat_toan == ma %}chon{% endif %}">
+      <input type="radio" name="thuat_toan" value="{{ ma }}"
+             {% if chon.thuat_toan == ma %}checked{% endif %}>
+      <b>{{ ten }}</b>
+      <span>{{ giai_thich[ma] }}</span>
+    </label>
+    {% endfor %}
+  </div>
+
+  <div class="hang" style="margin-top:18px">
+    <div>
+      <label>Bộ dữ liệu</label>
+      <select id="duong-dan">
+        {% for f in ds %}
+        <option value="{{ f.duong_dan }}">{{ f.ten }} ({{ f.kich_thuoc_mb }} MB)</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Nhiệt độ tấm pin</label>
+      <select id="bo-nhiet">
+        <option value="1" selected>Bỏ ra (mặc định)</option>
+        <option value="0">Có dùng (chỉ thử nghiệm)</option>
+      </select>
+    </div>
+    <div><button id="nut" type="button">Huấn luyện</button></div>
+    <div><button id="nut-model-hien-tai" type="button">Xuất model hiện tại</button></div>
+    <div><a href="/tai-huong-dan-deploy-model"
+            style="display:inline-block;background:#548235;color:#fff;text-decoration:none;
+                   padding:10px 18px;border-radius:4px;font-weight:500">
+      Download hướng dẫn deploy
+    </a></div>
+    <div class="dang-chay" id="dang-chay">
+      <div class="quay"></div><span id="trang-thai">Đang khởi động…</span>
+    </div>
+  </div>
+
+  <div id="khoi-nhat-ky" style="display:none;margin-top:18px">
+    <h3>Quá trình chạy</h3>
+    <div class="nhat-ky" id="nhat-ky"></div>
+  </div>
+
+  {% if tom_tat %}
+  <h3 style="margin-top:22px">Chọn tháng đem ra chấm</h3>
+  <div class="thang" id="thang">
+    {% for t in tom_tat.thang %}
+    <label class="{% if not t.cham_duoc %}khoa{% endif %}"
+           title="{{ t.so_o_ngay }} ô ban ngày{% if not t.cham_duoc %} · chưa đủ tháng trước đó để học{% endif %}">
+      <input type="checkbox" value="{{ t.ma }}"
+             {% if not t.cham_duoc %}disabled{% endif %}>
+      {{ t.nhan }}
+    </label>
+    {% endfor %}
+  </div>
+  <div class="nhanh">
+    <a data-nhanh="3">3 tháng cuối</a>
+    <a data-nhanh="6">6 tháng cuối</a>
+    <a data-nhanh="tat-ca">Tất cả</a>
+    <a data-nhanh="mua-may">Tháng nhiều mây nhất (11–12/2025)</a>
+    <a data-nhanh="xoa">Bỏ chọn hết</a>
+  </div>
+  <p class="mo" style="margin-top:6px" id="tom-tat-chon"></p>
+  <p class="mo" style="margin-top:2px">
+    Độ mây đo bằng chỉ số trời quang, càng thấp càng nhiều mây:
+    <b>12/2025 = 0,34</b> và <b>11/2025 = 0,34</b> nhiều mây nhất;
+    <b>01/2026 = 0,63</b> quang nhất. Tháng 2 và 3 tuy sai số cao nhưng lại khá quang —
+    sai số ở đó đến từ công suất cao và từ chênh lệch độ mây giữa giai đoạn học
+    với tháng đem ra chấm, không phải từ mây.
+  </p>
+  {% endif %}
+
+  <div class="luu-y">
+    <b>Cách chấm điểm — diễn tập lại quá khứ.</b>
+    Mỗi tháng đem ra chấm là một lần đóng vai người đứng ở cuối tháng trước đó:
+    mô hình chỉ được học từ những gì đã xảy ra trước thời điểm ấy, rồi dự báo tháng
+    tiếp theo, sau đó mới mở dữ liệu thật ra so. Mô hình không bao giờ nhìn thấy tương lai.
+
+    <div style="margin:10px 0 8px; font-family:Consolas,monospace; font-size:12px;
+                line-height:1.7; color:#333">
+      <pre style="margin:0; font:inherit">           2025                  2026
+        07 08 09 10 11 12 │ 01 02 03 04 05 06 07
+Lượt 1  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ ██ <b style="color:#c55a11">▓▓</b>
+Lượt 2  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ ██ ██ <b style="color:#c55a11">▓▓</b>
+Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ ██ ██ ██ <b style="color:#c55a11">▓▓</b></pre>
+      <span style="color:#595959">██ tháng cho mô hình học &nbsp;&nbsp;
+      <b style="color:#c55a11">▓▓</b> tháng đem ra chấm</span>
+    </div>
+
+    Chỉ tính phần ban ngày với góc cao mặt trời trên 0°. Ban đêm chiếm gần một nửa
+    số ô nhưng chỉ 0,50% sản lượng năm — gộp vào sẽ làm chỉ số đẹp lên gấp đôi một
+    cách giả tạo.
+  </div>
+</section>
+
+<section>
+  <h2>2. Dự báo ngày mai và hai ngày kế tiếp</h2>
+  <div class="hang">
+    <div>
+      <label>Phạm vi dự báo</label>
+      <div class="thang" id="so-ngay">
+        <label title="Tầm dự báo ngắn nhất nên đáng tin nhất"><input type="radio"
+          name="so_ngay" value="1"> 1 ngày</label>
+        <label><input type="radio" name="so_ngay" value="2"> 2 ngày</label>
+        <label><input type="radio" name="so_ngay" value="3" checked> 3 ngày</label>
+        <label title="Quá 3 ngày thì dự báo bức xạ suy giảm nhanh, dùng để tham khảo xu thế">
+          <input type="radio" name="so_ngay" value="5"> 5 ngày</label>
+      </div>
+    </div>
+    <div>
+      <label>Bắt đầu từ</label>
+      <div class="thang" id="bat-dau-tu">
+        <label><input type="radio" name="bat_dau" value="mai" checked> Ngày mai</label>
+        <label title="Gồm cả hôm nay — phần giờ đã trôi qua không còn là dự báo thật">
+          <input type="radio" name="bat_dau" value="nay"> Hôm nay</label>
+      </div>
+    </div>
+    <div><button id="nut-du-bao" type="button">Dự báo</button></div>
+    <div class="dang-chay" id="dang-chay-2">
+      <div class="quay"></div><span id="trang-thai-2">Đang gọi Open-Meteo…</span>
+    </div>
+  </div>
+
+  <div class="luu-y">
+    <b>Mục này không huấn luyện gì cả.</b> Nó nạp mô hình đã được lưu ở mục 1, lấy dự
+    báo thời tiết mới, rồi chạy. Chưa huấn luyện lần nào thì nó báo lỗi chứ không tự
+    học — mô hình đưa vào vận hành phải do bạn quyết định, không phải hệ quả phụ của
+    việc dữ liệu thay đổi. Dữ liệu mới về cũng <b>không</b> tự kích hoạt huấn luyện
+    lại; nó chỉ hiện một dòng nhắc.
+
+    <div style="margin-top:10px"><b>Con số ở mục 1 không áp dụng cho mục này.</b>
+    Phần trên chấm mô hình bằng bức xạ <b>đo được</b> — đó là trần của khâu đổi bức xạ
+    sang công suất. Ở đây bức xạ phải lấy từ mô hình thời tiết, nên sai số của dự báo
+    thời tiết cộng thêm vào, và phần cộng thêm đó thường lớn hơn phần còn lại nhiều lần.
+    Chỉ sau khi so với SCADA thật mới biết được con số thực.
+
+    <div style="margin-top:10px">
+      <b>Đã bỏ nhiệt độ tấm pin</b>, đúng như nhận xét — ngày mai không có nhiệt độ tấm
+      pin. Đo bằng số: giữ nó lại giúp được <b>+0,136 MW</b>, nhưng phải ước lượng nó
+      thì sai <b>2,31 °C</b> tương đương <b>~0,32 MW</b>. Giá đắt hơn lợi gấp đôi.
+      Bốn biến còn lại thì ba biến tính từ toạ độ và đồng hồ, chỉ mỗi bức xạ phải đi xin.
+      Vì vậy ở mục 1 phải đặt <b>Nhiệt độ tấm pin = "Bỏ ra"</b> thì mô hình lưu ra mới
+      dùng được ở đây.
+    </div>
+    </div>
+  </div>
+</section>
+
+<section id="khoi-ket-qua"></section>
+
+{% if tom_tat %}
+<section>
+  <h2>3. Dữ liệu dùng để huấn luyện</h2>
+  <div class="chi-so">
+    <div class="o"><div class="ten">Tổng số ô</div>
+      <div class="gia-tri">{{ '{:,}'.format(tom_tat.so_o) }}</div></div>
+    <div class="o"><div class="ten">Ô ban ngày</div>
+      <div class="gia-tri">{{ '{:,}'.format(tom_tat.so_o_ban_ngay) }}</div></div>
+    <div class="o"><div class="ten">Số tháng</div>
+      <div class="gia-tri">{{ tom_tat.so_thang }}</div></div>
+  </div>
+  <p class="mo">Phạm vi: {{ tom_tat.tu }} → {{ tom_tat.den }} (giờ nhà máy)</p>
+
+  <table>
+    <tr><th>Biến</th><th>Vai trò</th><th class="so">Độ phủ</th>
+        <th class="so">Nhỏ nhất</th><th class="so">Trung bình</th><th class="so">Lớn nhất</th></tr>
+    {% for b in tom_tat.bien %}
+    <tr>
+      <td>{{ b.ten }}</td>
+      <td>{% if b.la_muc_tieu %}<span class="nhan nhan-dich">mục tiêu</span>
+          {% elif b.la_dau_vao %}<span class="nhan nhan-vao">đầu vào</span>{% endif %}</td>
+      <td class="so">{{ b.do_phu }}%</td>
+      <td class="so">{{ b.nho_nhat if b.nho_nhat is not none else '—' }}</td>
+      <td class="so">{{ b.trung_binh if b.trung_binh is not none else '—' }}</td>
+      <td class="so">{{ b.lon_nhat if b.lon_nhat is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <div class="luu-y">
+    Các biến không có nhãn là biến đã thu thập nhưng không đưa vào mô hình. Nhiệt độ
+    không khí và độ ẩm tắt hẳn từ tháng 5/2026 nên độ phủ chỉ khoảng 80%.
+  </div>
+</section>
+{% endif %}
+</main>
+
+<script>
+const $ = function (s) { return document.querySelector(s); };
+const MO_HINH_HIEN_CO = {{ mo_hinh_hien_co | tojson }};
+
+document.querySelectorAll('.the input').forEach(function (r) {
+  r.addEventListener('change', function () {
+    document.querySelectorAll('.the').forEach(function (t) { t.classList.remove('chon'); });
+    r.closest('.the').classList.add('chon');
+    capNhatNutModelHienTai();
+  });
+});
+
+function capNhatNutModelHienTai() {
+  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  const nut = $('#nut-model-hien-tai');
+  nut.disabled = !MO_HINH_HIEN_CO[ma];
+  nut.title = nut.disabled ? 'Chưa có model cho thuật toán này' : 'Tải model đang được dùng';
+}
+
+$('#nut-model-hien-tai').addEventListener('click', function () {
+  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  window.location.href = '/xuat-model-hien-tai/' + encodeURIComponent(ma);
+});
+capNhatNutModelHienTai();
+
+function thoat(s) {
+  return String(s).replace(/[&<>]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c];
+  });
+}
+
+// To mau tung dong nhat ky theo loai
+function toMau(d) {
+  const an = thoat(d);
+  if (/^\[\d\/\d\]/.test(d)) return '<span class="buoc">' + an + '</span>';
+  if (/^XONG/.test(d))       return '<span class="xong">' + an + '</span>';
+  if (/MAE .* NMAE/.test(d)) return '<span class="chiso">' + an + '</span>';
+  return an;
+}
+
+let cacDong = [];
+let maCongViec = null;      // ma cong viec gan nhat, dung cho duong dan xuat Excel
+function veNhatKy(dangChay) {
+  $('#nhat-ky').innerHTML = cacDong.map(toMau).join('\n')
+    + (dangChay ? '\n<span class="con-tro"></span>' : '');
+  const k = $('#nhat-ky');
+  k.scrollTop = k.scrollHeight;          // luon cuon xuong dong moi nhat
+}
+
+function veKetQua(kq, ma) {
+  const cs = kq.chi_so;
+  const o = function (ten, gt, manh) {
+    return '<div class="o' + (manh ? ' nhan-manh' : '') + '"><div class="ten">' + ten
+         + '</div><div class="gia-tri">' + gt + '</div></div>';
+  };
+  let h = '<h2>Kết quả — ' + thoat(kq.ten_thuat_toan) + '</h2><div class="chi-so">'
+    + o('NMAE theo 40 MW', cs['NMAE_%'].toFixed(2) + '%', true)
+    + o('MAE', cs.MAE.toFixed(3))
+    + o('RMSE', cs.RMSE.toFixed(3))
+    + o('Bias', (cs.Bias >= 0 ? '+' : '') + cs.Bias.toFixed(3))
+    + o('R²', cs.R2.toFixed(3))
+    + o('Số mẫu', cs.n.toLocaleString('vi-VN'))
+    + '</div><p class="mo">Biến đầu vào: ' + thoat(kq.bien_dau_vao.join(', '))
+    + ' · ' + kq.so_fold + ' lượt · chạy ' + kq.giay + ' giây</p>';
+
+  h += '<h3>Chi tiết từng lượt</h3><table><tr><th>Tháng đem ra chấm</th>'
+     + '<th class="so">Số mẫu</th><th class="so">MAE</th><th class="so">NMAE</th>'
+     + '<th class="so">Bias</th><th class="so">Độ phủ</th></tr>';
+  kq.fold.forEach(function (f) {
+    h += '<tr><td>' + thoat(f.fold) + '</td>'
+       + '<td class="so">' + f.n.toLocaleString('vi-VN') + '</td>'
+       + '<td class="so">' + f.MAE.toFixed(3) + '</td>'
+       + '<td class="so">' + f['NMAE_%'].toFixed(2) + '%</td>'
+       + '<td class="so">' + (f.Bias >= 0 ? '+' : '') + f.Bias.toFixed(3) + '</td>'
+       + '<td class="so">' + (f.do_phu * 100).toFixed(0) + '%</td></tr>';
+  });
+  h += '</table>';
+
+  // Mo hinh vua duoc ghi nhan -- day la cho duy nhat trong he thong sinh ra mo hinh
+  const ml = kq.mo_hinh_da_luu;
+  if (ml) {
+    MO_HINH_HIEN_CO[kq.thuat_toan] = true;
+    capNhatNutModelHienTai();
+    h += '<div class="luu-y" style="border-left-color:#548235;background:#f4f8f0">'
+       + '<b>Đã lưu mô hình: ' + thoat(ml.tep) + '</b><br>'
+       + 'Học từ ' + Number(ml.so_mau).toLocaleString('vi-VN') + ' ô ban ngày · '
+       + thoat(String(ml.pham_vi[0]).slice(0, 10)) + ' → '
+       + thoat(String(ml.pham_vi[1]).slice(0, 10))
+       + ' · vân tay <code>' + thoat(ml.van_tay.slice(0, 16)) + '</code>'
+       + '<div style="margin-top:8px">Bảng trên là kết quả <b>chấm</b>, mô hình vừa lưu là '
+       + '<b>sản phẩm</b> — nó được khớp lại trên toàn bộ dữ liệu, kể cả các tháng đã đem '
+       + 'ra chấm. Đây là mô hình mục 2 sẽ dùng để dự báo. Trạng thái: '
+       + thoat(ml.trang_thai) + '.'
+       + (ml.bo_nhiet ? '' : ' <b>Mô hình này có dùng nhiệt độ tấm pin nên KHÔNG dự báo '
+           + 'ngày mai được</b> — đặt "Nhiệt độ tấm pin = Bỏ ra" rồi huấn luyện lại.')
+       + '</div><div style="margin-top:12px"><a href="/xuat-model/'
+       + encodeURIComponent(ma) + '" style="display:inline-block;background:#1f4e79;'
+       + 'color:#fff;text-decoration:none;padding:9px 16px;border-radius:4px;'
+       + 'font-weight:500">Xuất model đã training</a>'
+       + ' <a href="/huong-dan-deploy-model" target="_blank" style="margin-left:10px">'
+       + 'Hướng dẫn deploy</a></div></div>';
+  }
+
+  h += '<div class="luu-y">Mô hình này dùng bức xạ <b>đo được</b>, nên con số '
+     + 'trên là trần khả năng của cả hệ thống chứ không phải sai số dự báo thực tế. '
+     + 'Sai số dự báo thật sẽ lớn hơn, và phần chênh lệch do chất lượng nguồn dự báo '
+     + 'thời tiết quyết định.</div>';
+
+  // ---- khoi xem chi tiet mot ngay ----
+  theoNgay = kq.theo_ngay || {};
+  const ngayCo = Object.keys(theoNgay).sort();
+  if (ngayCo.length) {
+    h += '<h3 style="margin-top:26px">Xem chi tiết một ngày</h3>'
+       + '<div class="hang" style="margin-bottom:14px"><div>'
+       + '<label>Chọn ngày</label><select id="chon-ngay">';
+    ngayCo.forEach(function (n) {
+      const g = theoNgay[n];
+      const p = n.split('-');
+      h += '<option value="' + n + '">' + p[2] + '/' + p[1] + '/' + p[0]
+         + ' — NMAE ' + g.nmae.toFixed(2).replace('.', ',') + '%</option>';
+    });
+    h += '</select></div><div class="nhanh" style="margin-bottom:6px">'
+       + '<a id="ngay-tot">Ngày tốt nhất</a><a id="ngay-te">Ngày tệ nhất</a></div></div>'
+       + '<div id="chi-tiet-ngay"></div>';
+  }
+
+  $('#khoi-ket-qua').innerHTML = h;
+  $('#khoi-ket-qua').style.display = 'block';
+
+  if (ngayCo.length) {
+    $('#chon-ngay').addEventListener('change', function () { veNgay(this.value); });
+    $('#ngay-tot').addEventListener('click', function () {
+      const n = ngayCo.reduce(function (a, b) {
+        return theoNgay[a].nmae <= theoNgay[b].nmae ? a : b; });
+      $('#chon-ngay').value = n; veNgay(n);
+    });
+    $('#ngay-te').addEventListener('click', function () {
+      const n = ngayCo.reduce(function (a, b) {
+        return theoNgay[a].nmae >= theoNgay[b].nmae ? a : b; });
+      $('#chon-ngay').value = n; veNgay(n);
+    });
+    veNgay(ngayCo[0]);
+  }
+}
+
+// ---------------------------------------------------------- chi tiet mot ngay
+let theoNgay = {};
+
+function veBieuDo(diem) {
+  const W = 620, Hh = 240, L = 46, R = 12, T = 14, B = 26;
+  const n = diem.length;
+  if (n < 2) return '';
+  let cao = 0;
+  diem.forEach(function (p) { cao = Math.max(cao, p[1], p[2]); });
+  cao = Math.max(cao * 1.1, 1);
+  const x = function (i) { return L + i * (W - L - R) / (n - 1); };
+  const y = function (v) { return T + (Hh - T - B) * (1 - v / cao); };
+  const duong = function (k) {
+    return diem.map(function (p, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(p[k]); }).join(' ');
+  };
+  let g = '<svg class="bieu-do" viewBox="0 0 ' + W + ' ' + Hh + '">';
+  for (let i = 0; i <= 4; i++) {
+    const v = cao * i / 4;
+    g += '<line x1="' + L + '" y1="' + y(v) + '" x2="' + (W - R) + '" y2="' + y(v)
+       + '" stroke="#eee"/><text x="' + (L - 6) + '" y="' + (y(v) + 4)
+       + '" font-size="10" fill="#888" text-anchor="end">' + v.toFixed(0) + '</text>';
+  }
+  diem.forEach(function (p, i) {
+    if (p[0].endsWith(':00') && parseInt(p[0], 10) % 3 === 0)
+      g += '<text x="' + x(i) + '" y="' + (Hh - 8) + '" font-size="10" fill="#888"'
+         + ' text-anchor="middle">' + p[0] + '</text>';
+  });
+  g += '<path d="' + duong(1) + '" fill="none" stroke="#1f4e79" stroke-width="2"/>'
+     + '<path d="' + duong(2) + '" fill="none" stroke="#c55a11" stroke-width="2"'
+     + ' stroke-dasharray="5 3"/>'
+     + '<text x="' + (L + 6) + '" y="' + (T + 10) + '" font-size="11" fill="#1f4e79">'
+     + '&#9473; Thực tế</text>'
+     + '<text x="' + (L + 78) + '" y="' + (T + 10) + '" font-size="11" fill="#c55a11">'
+     + '&#9480;&#9480; Dự báo</text></svg>';
+  return g;
+}
+
+function veNgay(ngay) {
+  const g = theoNgay[ngay];
+  if (!g) return;
+  const so = function (v) { return v.toFixed(3).replace('.', ','); };
+  const pt = function (v) { return v.toFixed(2).replace('.', ','); };
+
+  // Bang 1 -- tong hop ca ngay
+  let b1 = '<h3>Tổng hợp cả ngày</h3><table>'
+    + '<tr><th>Chỉ số</th><th class="so">Thực tế</th><th class="so">Dự báo</th>'
+    + '<th class="so">Lệch</th></tr>'
+    + '<tr><td>Sản lượng (MWh)</td><td class="so">' + pt(g.e_that) + '</td>'
+    + '<td class="so">' + pt(g.e_du_bao) + '</td><td class="so '
+    + (g.e_du_bao - g.e_that >= 0 ? 'duong' : 'am') + '">'
+    + (g.e_du_bao - g.e_that >= 0 ? '+' : '') + pt(g.e_du_bao - g.e_that) + '</td></tr>'
+    + '<tr><td>Công suất đỉnh (MW)</td><td class="so">' + pt(g.dinh_that) + '</td>'
+    + '<td class="so">' + pt(g.dinh_du_bao) + '</td><td class="so '
+    + (g.dinh_du_bao - g.dinh_that >= 0 ? 'duong' : 'am') + '">'
+    + (g.dinh_du_bao - g.dinh_that >= 0 ? '+' : '') + pt(g.dinh_du_bao - g.dinh_that)
+    + '</td></tr>'
+    + '<tr><td>Giờ đạt đỉnh</td><td class="so">' + g.gio_dinh_that + '</td>'
+    + '<td class="so">' + g.gio_dinh_du_bao + '</td><td class="so">—</td></tr>'
+    + '<tr><td>MAE của ngày</td><td class="so">—</td><td class="so">—</td>'
+    + '<td class="so">' + so(g.mae) + ' MW</td></tr>'
+    + '<tr><td>NMAE của ngày</td><td class="so">—</td><td class="so">—</td>'
+    + '<td class="so"><b>' + pt(g.nmae) + '%</b></td></tr>'
+    + '<tr><td>Số ô ban ngày</td><td class="so">—</td><td class="so">—</td>'
+    + '<td class="so">' + g.so_o + '</td></tr></table>';
+
+  // Bang 2 -- tung o 15 phut
+  let b2 = '<h3>Từng ô 15 phút</h3><div class="bang-cuon"><table>'
+    + '<tr><th>Giờ</th><th class="so">Bức xạ</th><th class="so">Thực tế</th>'
+    + '<th class="so">Dự báo</th><th class="so">Lệch</th></tr>';
+  g.diem.forEach(function (p) {
+    const l = p[2] - p[1];
+    b2 += '<tr><td>' + p[0] + '</td>'
+        + '<td class="so">' + (p[3] === null ? '—' : p[3]) + '</td>'
+        + '<td class="so">' + so(p[1]) + '</td><td class="so">' + so(p[2]) + '</td>'
+        + '<td class="so ' + (l >= 0 ? 'duong' : 'am') + '">'
+        + (l >= 0 ? '+' : '') + so(l) + '</td></tr>';
+  });
+  b2 += '</table></div>';
+
+  $('#chi-tiet-ngay').innerHTML =
+      veBieuDo(g.diem)
+    + '<div class="hai-bang" style="margin-top:12px">' + b1 + b2 + '</div>'
+    + '<div class="luu-y">Đây là công cụ <b>xem</b>, không phải công cụ chấm. '
+    + 'Một ngày chỉ có khoảng ' + g.so_o + ' ô ban ngày nên chỉ số của riêng nó dao '
+    + 'động rất mạnh — đo trên tháng 5/2026 thì ngày tốt nhất 2,43% còn ngày tệ nhất '
+    + '7,46%, chênh ba lần. Con số dùng để kết luận là NMAE của cả tháng ở phần trên.'
+    + '</div>';
+}
+
+function xong(dangChay) {
+  $('#nut').disabled = dangChay;
+  $('#nut').textContent = dangChay ? 'Đang chạy…' : 'Huấn luyện';
+  $('#dang-chay').style.display = dangChay ? 'flex' : 'none';
+}
+
+function xong2(dangChay) {
+  $('#nut-du-bao').disabled = dangChay;
+  $('#nut-du-bao').textContent = dangChay ? 'Đang chạy…' : 'Dự báo ngày mai';
+  $('#dang-chay-2').style.display = dangChay ? 'flex' : 'none';
+}
+
+// ---------------------------------------------------------- ket qua du bao
+function veDuBao(kq) {
+  // v co the la null khi phia may chu gap NaN -- hien gach ngang thay vi 0,000 gia
+  const pt = function (v, n) {
+    return (v === null || v === undefined) ? '—'
+      : Number(v).toFixed(n === undefined ? 2 : n).replace('.', ',');
+  };
+  let h = '<h2>Dự báo công suất — ' + kq.ngay.length + ' ngày tới · '
+        + thoat(kq.ten_thuat_toan) + '</h2>'
+        + '<div style="margin:-4px 0 16px"><a href="/xuat-excel/' + maCongViec + '" '
+        + 'style="display:inline-block;background:#548235;color:#fff;padding:9px 20px;'
+        + 'border-radius:4px;text-decoration:none;font-size:14px;font-weight:500">'
+        + '⭳ Tải Excel</a> <span class="mo" style="margin-left:10px">4 trang: tổng hợp, '
+        + 'chi tiết 15 phút, theo từng nguồn thời tiết, và thông tin mô hình.</span></div>';
+
+  // canh bao he thong len TRUOC so lieu, khong giau xuong duoi
+  (kq.canh_bao || []).forEach(function (c) {
+    h += '<div class="loi">CẢNH BÁO: ' + thoat(c) + '</div>';
+  });
+
+  h += '<div class="chi-so">';
+  kq.ngay.forEach(function (n) {
+    // Voi hom nay, con so dat len truoc la phan CON LAI tu bay gio den het ngay --
+    // phan da troi qua khong con quyet dinh duoc gi trong van hanh.
+    const homNay = n.la_hom_nay && n.e_con_lai !== null && n.e_con_lai !== undefined;
+    h += '<div class="o' + (n.canh_bao ? '' : ' nhan-manh') + '">'
+       + '<div class="ten">' + (n.la_hom_nay ? 'HÔM NAY · ' : '') + thoat(n.thu) + ' '
+       + n.nhan.slice(0, 5) + '</div>'
+       + '<div class="gia-tri">' + pt(homNay ? n.e_con_lai : n.e_mwh, 1) + '</div>'
+       + '<div class="ten" style="text-transform:none">'
+       + (homNay ? 'MWh còn lại từ ' + n.gio_con_lai + ' · cả ngày ' + pt(n.e_mwh, 1)
+                 : 'MWh · đỉnh ' + pt(n.dinh_mw) + ' MW lúc ' + n.gio_dinh)
+       + '</div></div>';
+  });
+  h += '</div>';
+
+  if (kq.ngay.some(function (n) { return n.la_hom_nay; })) {
+    h += '<div class="luu-y"><b>Hôm nay không phải một phép thử công bằng.</b> '
+       + 'Với những mốc giờ đã trôi qua, Open-Meteo trả về giá trị đã hiệu chỉnh theo '
+       + 'quan trắc chứ không còn là dự báo thuần tuý — nên chúng chính xác hơn hẳn '
+       + 'dự báo thật. Đừng lấy hôm nay ra đo độ chính xác của mô hình. Con số dùng '
+       + 'được trong vận hành là phần <b>còn lại từ bây giờ đến hết ngày</b>; trong '
+       + 'bảng chi tiết và trong Excel, các mốc đã qua được đánh dấu riêng.</div>';
+  }
+
+  // bang tong hop
+  h += '<table><tr><th>Ngày</th><th class="so">Sản lượng</th><th class="so">Đỉnh</th>'
+     + '<th class="so">Giờ đỉnh</th><th class="so">Hệ số tải</th>'
+     + '<th class="so">Trời quang kt</th><th class="so">Tản giữa các mô hình</th></tr>';
+  kq.ngay.forEach(function (n) {
+    h += '<tr><td>' + thoat(n.thu) + ' ' + n.nhan + '</td>'
+       + '<td class="so">' + pt(n.e_mwh, 1) + ' MWh</td>'
+       + '<td class="so">' + pt(n.dinh_mw) + ' MW</td>'
+       + '<td class="so">' + n.gio_dinh + '</td>'
+       + '<td class="so">' + pt(n.he_so_tai, 1) + '%</td>'
+       + '<td class="so">' + pt(n.kt_tb, 3) + '</td>'
+       + '<td class="so">' + (n.tan_mwh === null ? '—' : '±' + pt(n.tan_mwh, 1) + ' MWh')
+       + '</td></tr>';
+  });
+  h += '</table>';
+
+  if (kq.moc_lich_su) {
+    const m = kq.moc_lich_su;
+    h += '<p class="mo" style="margin-top:10px">Đối chiếu lịch sử tháng '
+       + ('0' + m.thang).slice(-2) + ' (' + m.so_ngay + ' ngày đã đo): sản lượng ngày '
+       + 'trung bình <b>' + pt(m.tb, 1) + ' MWh</b>, khoảng thường gặp '
+       + pt(m.p10, 1) + '–' + pt(m.p90, 1) + ' MWh. Dự báo nằm ngoài khoảng này '
+       + 'không sai, nhưng đáng xem lại.</p>';
+  }
+
+  // nguon du bao thoi tiet
+  h += '<h3 style="margin-top:22px">Nguồn dự báo thời tiết đã dùng</h3><table>'
+     + '<tr><th>Mô hình</th><th>Trạng thái</th></tr>';
+  (kq.mo_hinh_dung || []).forEach(function (m) {
+    h += '<tr><td>' + thoat(m.ten) + '</td><td><span class="nhan nhan-dich">dùng</span>'
+       + '</td></tr>';
+  });
+  (kq.mo_hinh_loai || []).forEach(function (m) {
+    h += '<tr><td>' + thoat(m.ten) + '</td><td>loại — ' + thoat(m.ly_do) + '</td></tr>';
+  });
+  h += '</table><p class="mo">Hợp nhất bằng <b>trung vị</b> chứ không phải trung bình '
+     + 'cộng: một nguồn hỏng có thể lệch cả nghìn W/m², trung bình cộng sẽ cộng cái '
+     + 'hỏng đó vào kết quả chung. Bức xạ giờ được đổi sang bước 15 phút qua chỉ số '
+     + 'trời quang, không nội suy thẳng bức xạ. Lệch tâm ngày đo được: '
+     + (kq.lech_phut >= 0 ? '+' : '') + kq.lech_phut + ' phút.</p>';
+
+  // xem tung ngay
+  h += '<h3 style="margin-top:26px">Xem chi tiết một ngày</h3>'
+     + '<div class="hang" style="margin-bottom:14px"><div><label>Chọn ngày</label>'
+     + '<select id="chon-ngay-db">';
+  kq.ngay.forEach(function (n, i) {
+    h += '<option value="' + i + '">' + thoat(n.thu) + ' ' + n.nhan + '</option>';
+  });
+  h += '</select></div></div><div id="chi-tiet-db"></div>';
+
+  // ---- doi chieu voi mot ngay da qua ----
+  h += '<h3 style="margin-top:26px">Đối chiếu với một ngày đã qua</h3>'
+     + '<div class="hang" style="margin-bottom:6px">'
+     + '<div><label>Năm</label><select id="dc-nam" style="min-width:110px"></select></div>'
+     + '<div><label>Tháng</label><select id="dc-thang" style="min-width:110px"></select></div>'
+     + '<div><label>Ngày</label><select id="dc-ngay" style="min-width:110px"></select></div>'
+     + '<div><button id="dc-nut" type="button">Đối chiếu</button></div></div>'
+     + '<div class="nhanh" style="margin-bottom:10px">'
+     + '<a id="dc-nam-ngoai">Cùng ngày năm ngoái</a></div>'
+     + '<div id="dc-ket-qua"></div>'
+     + '<div class="luu-y">Đây là <b>đối chiếu tham khảo, không phải phép chấm</b>. '
+     + 'Ngày mai và một ngày đã qua là hai ngày thời tiết khác nhau — chúng lệch nhau '
+     + 'là chuyện đương nhiên và không nói lên mô hình đúng hay sai. Phép chấm thật chỉ '
+     + 'có một: chờ ngày đó xảy ra rồi so với SCADA. Dùng chỗ này để xem hình dạng ngày '
+     + 'mai có hợp lý không, và nó đứng ở đâu so với một ngày quang hay ngày mây đã biết.'
+     + '<div style="margin-top:8px"><b>"Cùng ngày năm ngoái"</b> là mốc đối chiếu có ý '
+     + 'nghĩa nhất: cùng ngày trong năm thì hình học mặt trời gần như trùng khớp, nên '
+     + 'mọi khác biệt còn lại đều là thời tiết chứ không phải do mặt trời đứng khác chỗ.'
+     + '</div></div>';
+
+  // Ly lich mo hinh -- thu Hai cham diem phai truy nguoc duoc chinh mo hinh nay
+  const mh = kq.mo_hinh || {};
+  h += '<h3 style="margin-top:26px">Mô hình đã dùng</h3><table>'
+     + '<tr><td>Tệp</td><td>' + thoat(mh.tep || '—') + '</td></tr>'
+     + '<tr><td>Dữ liệu từ lúc huấn luyện</td><td>' + (mh.du_lieu_da_doi
+         ? '<span class="nhan" style="background:#fdf0e3;color:#c55a11">đã thay đổi — '
+           + 'mô hình vẫn giữ nguyên</span>'
+         : '<span class="nhan nhan-dich">không đổi</span>') + '</td></tr>'
+     + '<tr><td>Huấn luyện lúc</td><td>'
+     + thoat(String(mh.huan_luyen_luc || '').slice(0, 19).replace('T', ' ')) + ' UTC</td></tr>'
+     + '<tr><td>Học từ</td><td>' + Number(mh.so_mau || 0).toLocaleString('vi-VN')
+     + ' ô ban ngày · ' + thoat(String((mh.pham_vi || ['', ''])[0]).slice(0, 10))
+     + ' → ' + thoat(String((mh.pham_vi || ['', ''])[1]).slice(0, 10)) + '</td></tr>'
+     + '<tr><td>Vân tay dữ liệu</td><td style="font-family:Consolas,monospace">'
+     + thoat(String(mh.van_tay || '').slice(0, 32)) + '</td></tr>'
+     + '<tr><td>Phê duyệt</td><td>' + thoat(mh.trang_thai || '—') + '</td></tr></table>'
+     + '<p class="mo">Vân tay tính từ <b>nội dung</b> tập huấn luyện, danh sách biến và '
+     + 'thuật toán. Nó chỉ để <b>báo</b>, không để kích hoạt: dữ liệu đổi thì hiện dòng '
+     + 'nhắc, còn huấn luyện lại hay không là quyết định của bạn ở mục 1. '
+     + 'Thứ Hai chấm điểm, hãy đối chiếu vân tay này để chắc chắn đang chấm đúng mô '
+     + 'hình đã sinh ra dự báo.</p>';
+
+  h += '<div class="luu-y"><b>' + thoat(kq.ten_thuat_toan) + '</b> — đúng thuật toán '
+     + 'đã chọn ở mục 1 · đầu vào: ' + thoat((kq.bien_dau_vao || []).join(', '))
+     + ' · học từ ' + Number(kq.so_mau_huan_luyen).toLocaleString('vi-VN')
+     + ' ô ban ngày'
+     + (kq.so_vong_lap ? ' · ' + kq.so_vong_lap + ' vòng lặp' : '') + '.'
+     + '<div style="margin-top:8px">Đây là mô hình đã lưu từ lần bấm <b>Huấn luyện</b> ở '
+     + 'mục 1 — nạp lên rồi chạy, không huấn luyện lại lần nào. Mô hình đó được khớp '
+     + 'trên toàn bộ lịch sử chứ không phải một lượt gốc trượt: mỗi lượt gốc trượt cố '
+     + 'tình không được nhìn tháng đem ra chấm, dùng nó đi dự báo là tự bỏ mất phần dữ '
+     + 'liệu mới nhất.</div>'
+     + '<div style="margin-top:8px">Đây là dự báo dựa trên bức xạ <b>NWP</b>, không '
+     + 'phải bức xạ đo được — sai số thực sẽ lớn hơn con số ở mục 1 và chỉ biết được '
+     + 'sau khi so với SCADA.</div></div>';
+
+  $('#khoi-ket-qua').innerHTML = h;
+  $('#khoi-ket-qua').style.display = 'block';
+  ngayDuBao = kq.ngay;
+  $('#chon-ngay-db').addEventListener('change', function () { veNgayDuBao(this.value); });
+  veNgayDuBao(0);
+  dungBoChonNgay();
+}
+
+// ------------------------------------------------- doi chieu voi ngay da qua
+const LICH = {{ (tom_tat.lich if tom_tat else {}) | tojson }};
+
+function dungBoChonNgay() {
+  const nam = Object.keys(LICH).sort();
+  if (!nam.length) {
+    $('#dc-ket-qua').innerHTML = '<p class="mo">Bộ dữ liệu chưa có ngày nào đủ dữ '
+      + 'liệu ban ngày để đối chiếu.</p>';
+    return;
+  }
+  const dat = function (sel, ds, chon) {
+    sel.innerHTML = ds.map(function (v) {
+      return '<option value="' + v + '"' + (v === chon ? ' selected' : '') + '>'
+           + v + '</option>'; }).join('');
+  };
+  dat($('#dc-nam'), nam, nam[nam.length - 1]);
+
+  function capThang() {
+    const t = Object.keys(LICH[$('#dc-nam').value]).sort();
+    dat($('#dc-thang'), t, t[t.length - 1]);
+    capNgay();
+  }
+  function capNgay() {
+    const ds = LICH[$('#dc-nam').value][$('#dc-thang').value] || [];
+    dat($('#dc-ngay'), ds, ds[0]);
+  }
+  $('#dc-nam').addEventListener('change', capThang);
+  $('#dc-thang').addEventListener('change', capNgay);
+  capThang();
+
+  $('#dc-nut').addEventListener('click', function () {
+    chonNgayDoiChieu($('#dc-nam').value + '-' + $('#dc-thang').value
+                     + '-' + $('#dc-ngay').value);
+  });
+
+  // Cung ngay nam ngoai: hinh hoc mat troi trung khop nen chenh lech con lai
+  // deu la thoi tiet. Neu ngay do khong co du lieu thi tim ngay gan nhat trong
+  // cung thang chu khong im lang bo qua.
+  $('#dc-nam-ngoai').addEventListener('click', function () {
+    const n = ngayDuBao[parseInt($('#chon-ngay-db').value, 10)];
+    const p = n.ngay.split('-');
+    const y = String(parseInt(p[0], 10) - 1);
+    if (!LICH[y] || !LICH[y][p[1]]) {
+      $('#dc-ket-qua').innerHTML = '<div class="luu-y">Không có dữ liệu tháng '
+        + p[1] + '/' + y + ' để đối chiếu.</div>';
+      return;
+    }
+    const ds = LICH[y][p[1]];
+    const gan = ds.reduce(function (a, b) {
+      return Math.abs(+a - +p[2]) <= Math.abs(+b - +p[2]) ? a : b; });
+    $('#dc-nam').value = y; $('#dc-nam').dispatchEvent(new Event('change'));
+    $('#dc-thang').value = p[1]; $('#dc-thang').dispatchEvent(new Event('change'));
+    $('#dc-ngay').value = gan;
+    chonNgayDoiChieu(y + '-' + p[1] + '-' + gan);
+  });
+}
+
+async function chonNgayDoiChieu(ngay) {
+  $('#dc-ket-qua').innerHTML = '<p class="mo">Đang đọc dữ liệu ngày ' + ngay + '…</p>';
+  let qk;
+  try {
+    const r = await fetch('/ngay-qua-khu', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ duong_dan: $('#duong-dan').value, ngay: ngay }),
+    });
+    qk = await r.json();
+  } catch (e) {
+    $('#dc-ket-qua').innerHTML = '<div class="loi">Không đọc được: ' + thoat(e) + '</div>';
+    return;
+  }
+  if (qk.loi) {
+    $('#dc-ket-qua').innerHTML = '<div class="loi">' + thoat(qk.loi) + '</div>';
+    return;
+  }
+  veDoiChieu(ngayDuBao[parseInt($('#chon-ngay-db').value, 10)], qk);
+}
+
+function veDoiChieu(db, qk) {
+  const pt = function (v, n) {
+    return (v === null || v === undefined) ? '—'
+      : Number(v).toFixed(n === undefined ? 2 : n).replace('.', ',');
+  };
+  // Ghep hai ngay theo GIO TRONG NGAY chu khong theo chi so mang: hai ngay co the
+  // co so o khac nhau (SCADA mat mot doan), ghep theo chi so se lam lech ca duong.
+  const mA = {}, mB = {};
+  db.diem.forEach(function (p) { mA[p[0]] = [p[1], p[2]]; });
+  qk.diem.forEach(function (p) { mB[p[0]] = [p[1], p[2]]; });
+  const gio = Object.keys(mA).filter(function (g) { return mB[g] !== undefined; }).sort();
+  if (gio.length < 4) {
+    $('#dc-ket-qua').innerHTML = '<div class="luu-y">Hai ngày không đủ mốc giờ '
+      + 'trùng nhau để vẽ.</div>';
+    return;
+  }
+  // chi ve khung co nang o it nhat mot trong hai ngay
+  const kh = gio.filter(function (g) {
+    return (mA[g][1] || 0) > 5 || (mB[g][1] || 0) > 5; });
+  const tr = kh.length > 6 ? kh : gio;
+
+  const tenA = 'Dự báo ' + db.nhan, tenB = 'Thực tế ' + qk.ngay.split('-').reverse().join('/');
+  const cs = tr.map(function (g) { return [g, mA[g][0], mB[g][0]]; });
+  const bx = tr.map(function (g) { return [g, mA[g][1], mB[g][1]]; });
+
+  let bang = '<table style="margin-top:14px"><tr><th>Chỉ số</th><th class="so">'
+    + thoat(tenA) + '</th><th class="so">' + thoat(tenB) + '</th>'
+    + '<th class="so">Lệch</th></tr>';
+  const dong = function (ten, a, b, n, dv) {
+    const l = (a === null || b === null) ? null : a - b;
+    return '<tr><td>' + ten + '</td><td class="so">' + pt(a, n) + dv + '</td>'
+      + '<td class="so">' + pt(b, n) + dv + '</td><td class="so '
+      + (l === null ? '' : (l >= 0 ? 'duong' : 'am')) + '">'
+      + (l === null ? '—' : (l >= 0 ? '+' : '') + pt(l, n) + dv) + '</td></tr>';
+  };
+  bang += dong('Sản lượng', db.e_mwh, qk.e_mwh, 1, ' MWh')
+        + dong('Công suất đỉnh', db.dinh_mw, qk.dinh_mw, 2, ' MW')
+        + '<tr><td>Giờ đạt đỉnh</td><td class="so">' + db.gio_dinh + '</td>'
+        + '<td class="so">' + (qk.gio_dinh || '—') + '</td><td class="so">—</td></tr>'
+        + dong('Chỉ số trời quang', db.kt_tb, qk.kt_tb, 3, '')
+        + '</table>'
+        + (qk.so_o_thieu ? '<p class="mo">Ngày quá khứ này thiếu ' + qk.so_o_thieu
+            + ' ô ban ngày — đường thực tế sẽ đứt đoạn ở đó.</p>' : '');
+
+  $('#dc-ket-qua').innerHTML =
+      '<h3 style="margin-top:14px">Bức xạ (W/m²)</h3>'
+    + veHaiDuong(bx, tenA, tenB, 0)
+    + '<h3>Công suất (MW)</h3>'
+    + veHaiDuong(cs, tenA, tenB, 1)
+    + bang;
+}
+
+function veHaiDuong(diem, tenA, tenB, soLe) {
+  const W = 900, Hh = 250, L = 52, R = 14, T = 22, B = 26;
+  const n = diem.length;
+  if (n < 2) return '';
+  let cao = 0;
+  diem.forEach(function (p) {
+    cao = Math.max(cao, p[1] === null ? 0 : p[1], p[2] === null ? 0 : p[2]); });
+  cao = Math.max(cao * 1.12, soLe ? 1 : 50);
+  const x = function (i) { return L + i * (W - L - R) / (n - 1); };
+  const y = function (v) { return T + (Hh - T - B) * (1 - v / cao); };
+  // Ngat duong khi gap o thieu thay vi noi thang qua -- noi thang se ve ra mot doan
+  // di len muot ma khong he co that.
+  const duong = function (k) {
+    let s = '', but = false;
+    diem.forEach(function (p, i) {
+      if (p[k] === null || p[k] === undefined) { but = false; return; }
+      s += (but ? 'L' : 'M') + x(i) + ' ' + y(p[k]) + ' '; but = true;
+    });
+    return s;
+  };
+  let g = '<svg viewBox="0 0 ' + W + ' ' + Hh + '" style="width:100%;height:250px">';
+  for (let i = 0; i <= 4; i++) {
+    const v = cao * i / 4;
+    g += '<line x1="' + L + '" y1="' + y(v) + '" x2="' + (W - R) + '" y2="' + y(v)
+       + '" stroke="#eee"/><text x="' + (L - 6) + '" y="' + (y(v) + 4)
+       + '" font-size="10" fill="#888" text-anchor="end">'
+       + v.toFixed(soLe) + '</text>';
+  }
+  diem.forEach(function (p, i) {
+    if (p[0].endsWith(':00') && parseInt(p[0], 10) % 2 === 0)
+      g += '<text x="' + x(i) + '" y="' + (Hh - 8) + '" font-size="10" fill="#888"'
+         + ' text-anchor="middle">' + p[0] + '</text>';
+  });
+  g += '<path d="' + duong(2) + '" fill="none" stroke="#595959" stroke-width="1.8"'
+     + ' stroke-dasharray="5 3"/>'
+     + '<path d="' + duong(1) + '" fill="none" stroke="#1f4e79" stroke-width="2.2"/>'
+     + '<text x="' + L + '" y="13" font-size="11" fill="#1f4e79">&#9473; '
+     + thoat(tenA) + '</text>'
+     + '<text x="' + (L + 190) + '" y="13" font-size="11" fill="#595959">'
+     + '&#9480;&#9480; ' + thoat(tenB) + '</text></svg>';
+  return g;
+}
+
+let ngayDuBao = [];
+
+function veNgayDuBao(i) {
+  const n = ngayDuBao[i];
+  if (!n) return;
+  const so = function (v) { return Number(v).toFixed(3).replace('.', ','); };
+
+  // chi ve khung gio co nang, ban dem khong co gi de xem
+  const sang = n.diem.filter(function (p) { return p[2] > 5; });
+  const diem = sang.length > 4 ? sang : n.diem;
+
+  let b = '<div class="bang-cuon" style="max-height:520px"><table>'
+        + '<tr><th>Giờ</th><th class="so">Bức xạ dự báo</th>'
+        + '<th class="so">Chỉ số trời quang</th><th class="so">Công suất</th>'
+        + '<th class="so">Sản lượng ô</th></tr>';
+  diem.forEach(function (p) {
+    // moc da troi qua lam mo di, de khong ai nham no voi phan con o phia truoc
+    const qua = p[4] === 1;
+    b += '<tr' + (qua ? ' style="opacity:.45"' : '') + '><td>' + p[0]
+       + (qua ? ' <span class="mo">(đã qua)</span>' : '') + '</td>'
+       + '<td class="so">' + p[2] + ' W/m²</td>'
+       + '<td class="so">' + so(p[3]) + '</td>'
+       + '<td class="so"><b>' + so(p[1]) + '</b> MW</td>'
+       + '<td class="so">' + so(p[1] / 4) + ' MWh</td></tr>';
+  });
+  b += '</table></div>';
+
+  $('#chi-tiet-db').innerHTML =
+      veBieuDoDuBao(diem)
+    + '<div class="hai-bang" style="margin-top:12px">'
+    + '<div>' + b + '</div>'
+    + '<div><h3 style="margin-top:0">Từng nguồn thời tiết nói gì</h3><table>'
+    + '<tr><th>Mô hình</th><th class="so">Sản lượng ngày</th></tr>'
+    + Object.keys(n.e_theo_mo_hinh).map(function (k) {
+        return '<tr><td>' + thoat(k) + '</td><td class="so">'
+             + Number(n.e_theo_mo_hinh[k]).toFixed(1).replace('.', ',')
+             + ' MWh</td></tr>'; }).join('')
+    + '<tr><td><b>Trung vị (dùng)</b></td><td class="so"><b>'
+    + Number(n.e_mwh).toFixed(1).replace('.', ',') + ' MWh</b></td></tr></table>'
+    + '<p class="mo" style="margin-top:10px">Khoảng cách giữa các mô hình là thước đo '
+    + 'độ tin cậy sẵn có duy nhất trước khi ngày đó xảy ra. Các mô hình đồng thuận '
+    + 'thì thường là ngày trời quang; tản rộng thì thường là ngày nhiều mây rời rạc, '
+    + 'và đó là loại ngày dự báo hay sai nhất.</p>'
+    + (n.canh_bao ? '<div class="luu-y">' + thoat(n.canh_bao) + '</div>' : '')
+    + '</div></div>';
+}
+
+function veBieuDoDuBao(diem) {
+  const W = 620, Hh = 250, L = 46, R = 40, T = 14, B = 26;
+  const n = diem.length;
+  if (n < 2) return '';
+  let capP = 1, capG = 1;
+  diem.forEach(function (p) { capP = Math.max(capP, p[1]); capG = Math.max(capG, p[2]); });
+  capP = Math.max(capP * 1.15, 5); capG = Math.max(capG * 1.15, 100);
+  const x = function (i) { return L + i * (W - L - R) / (n - 1); };
+  const yP = function (v) { return T + (Hh - T - B) * (1 - v / capP); };
+  const yG = function (v) { return T + (Hh - T - B) * (1 - v / capG); };
+  let g = '<svg class="bieu-do" viewBox="0 0 ' + W + ' ' + Hh + '">';
+  for (let i = 0; i <= 4; i++) {
+    const v = capP * i / 4;
+    g += '<line x1="' + L + '" y1="' + yP(v) + '" x2="' + (W - R) + '" y2="' + yP(v)
+       + '" stroke="#eee"/><text x="' + (L - 6) + '" y="' + (yP(v) + 4)
+       + '" font-size="10" fill="#1f4e79" text-anchor="end">' + v.toFixed(0) + '</text>'
+       + '<text x="' + (W - R + 6) + '" y="' + (yP(v) + 4) + '" font-size="10"'
+       + ' fill="#c55a11">' + (capG * i / 4).toFixed(0) + '</text>';
+  }
+  diem.forEach(function (p, i) {
+    if (p[0].endsWith(':00') && parseInt(p[0], 10) % 2 === 0)
+      g += '<text x="' + x(i) + '" y="' + (Hh - 8) + '" font-size="10" fill="#888"'
+         + ' text-anchor="middle">' + p[0] + '</text>';
+  });
+  g += '<path d="' + diem.map(function (p, i) {
+         return (i ? 'L' : 'M') + x(i) + ' ' + yG(p[2]); }).join(' ')
+     + '" fill="none" stroke="#c55a11" stroke-width="1.6" stroke-dasharray="5 3"/>'
+     + '<path d="' + diem.map(function (p, i) {
+         return (i ? 'L' : 'M') + x(i) + ' ' + yP(p[1]); }).join(' ')
+     + '" fill="none" stroke="#1f4e79" stroke-width="2.2"/>'
+     + '<text x="' + (L + 6) + '" y="' + (T + 10) + '" font-size="11" fill="#1f4e79">'
+     + '&#9473; Công suất (MW, trục trái)</text>'
+     + '<text x="' + (L + 190) + '" y="' + (T + 10) + '" font-size="11" fill="#c55a11">'
+     + '&#9480;&#9480; Bức xạ (W/m², trục phải)</text></svg>';
+  return g;
+}
+
+// ---------------------------------------------------------- chay mot cong viec
+// Dung chung cho ca hai nut. Ca hai cung day nhat ky qua SSE nen giao dien khong
+// phai biet ben duoi la huan luyen hay du bao.
+async function chayCongViec(url, ct, datTrangThai, ketThuc, ve) {
+  cacDong = [];
+  $('#khoi-nhat-ky').style.display = 'block';
+  $('#khoi-ket-qua').style.display = 'none';
+  veNhatKy(true);
+  ketThuc(true);
+
+  let ma;
+  try {
+    const r = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ct),
+    });
+    ma = (await r.json()).ma;
+    maCongViec = ma;                 // de nut xuat Excel lay dung ket qua nay
+  } catch (e) {
+    cacDong.push('Không gọi được máy chủ: ' + e);
+    veNhatKy(false); ketThuc(false); return;
+  }
+
+  const es = new EventSource('/tien-do/' + ma);
+  es.onmessage = function (ev) {
+    const g = JSON.parse(ev.data);
+    if (g.dong !== undefined) {
+      cacDong.push(g.dong);
+      veNhatKy(true);
+      datTrangThai(g.dong);
+      return;
+    }
+    if (g.xong) {
+      es.close();
+      veNhatKy(false);
+      ketThuc(false);
+      if (g.loi) {
+        $('#khoi-ket-qua').innerHTML = '<div class="loi">' + thoat(g.loi) + '</div>';
+        $('#khoi-ket-qua').style.display = 'block';
+      } else if (g.ket_qua) {
+        ve(g.ket_qua, ma);
+      }
+    }
+  };
+  es.onerror = function () {
+    es.close();
+    cacDong.push('Mất kết nối tới máy chủ.');
+    veNhatKy(false); ketThuc(false);
+  };
+}
+
+// ---- chon thang dem ra cham ----
+const oThang = function () {
+  return Array.from(document.querySelectorAll('#thang input:not([disabled])'));
+};
+function thangDaChon() {
+  return oThang().filter(function (o) { return o.checked; })
+                 .map(function (o) { return o.value; });
+}
+function capNhatThang() {
+  oThang().forEach(function (o) {
+    o.closest('label').classList.toggle('chon', o.checked);
+  });
+  const n = thangDaChon().length;
+  const t = $('#tom-tat-chon');
+  if (t) {
+    t.textContent = n === 0 ? 'Chưa chọn tháng nào.'
+      : 'Đã chọn ' + n + ' tháng — mô hình sẽ huấn luyện lại ' + n + ' lần, '
+        + 'mỗi lần chỉ học từ các tháng trước tháng đó.';
+  }
+}
+document.querySelectorAll('#thang input').forEach(function (o) {
+  o.addEventListener('change', capNhatThang);
+});
+document.querySelectorAll('.nhanh a').forEach(function (a) {
+  a.addEventListener('click', function () {
+    const kieu = a.dataset.nhanh;
+    const ds = oThang();
+    ds.forEach(function (o) { o.checked = false; });
+    if (kieu === 'tat-ca') ds.forEach(function (o) { o.checked = true; });
+    else if (kieu === 'mua-may')
+      // Do bang chi so troi quang thuc te, khong phai doan theo mua:
+      //   12/2025 kt=0,337  ·  11/2025 kt=0,342  -- hai thang nhieu may nhat
+      //   01/2026 kt=0,634  ·  04/2026 kt=0,567  -- hai thang quang nhat
+      ds.forEach(function (o) {
+        o.checked = o.value === '2025-11' || o.value === '2025-12';
+      });
+    else if (kieu !== 'xoa')
+      ds.slice(-parseInt(kieu, 10)).forEach(function (o) { o.checked = true; });
+    capNhatThang();
+  });
+});
+// mac dinh chon 3 thang cuoi
+oThang().slice(-3).forEach(function (o) { o.checked = true; });
+capNhatThang();
+
+$('#nut').addEventListener('click', function () {
+  const ct = {
+    duong_dan: $('#duong-dan').value,
+    thuat_toan: document.querySelector('input[name=thuat_toan]:checked').value,
+    so_fold: 3,
+    bo_nhiet: $('#bo-nhiet').value === '1',
+    thang_cham: thangDaChon(),
+  };
+  if (ct.thang_cham.length === 0) {
+    cacDong = ['Chưa chọn tháng nào để chấm.'];
+    $('#khoi-nhat-ky').style.display = 'block';
+    veNhatKy(false); return;
+  }
+  $('#trang-thai').textContent = 'Đang khởi động…';
+  chayCongViec('/bat-dau', ct, function (d) {
+    if (/^\[\d\/\d\]/.test(d)) $('#trang-thai').textContent = d.trim();
+    else if (/hoc .* mau/.test(d)) $('#trang-thai').textContent = 'Đang huấn luyện…';
+  }, xong, veKetQua);
+});
+
+// to dam lua chon dang bat, dung mot kieu voi day chon thang o tren
+function capNhatSoNgay() {
+  document.querySelectorAll('#so-ngay input, #bat-dau-tu input').forEach(function (o) {
+    o.closest('label').classList.toggle('chon', o.checked);
+  });
+}
+document.querySelectorAll('#so-ngay input, #bat-dau-tu input').forEach(function (o) {
+  o.addEventListener('change', capNhatSoNgay);
+});
+capNhatSoNgay();
+
+$('#nut-du-bao').addEventListener('click', function () {
+  $('#trang-thai-2').textContent = 'Đang khởi động…';
+  chayCongViec('/du-bao-tuong-lai', {
+    duong_dan: $('#duong-dan').value,
+    so_ngay: parseInt(
+      document.querySelector('#so-ngay input:checked').value, 10),
+    // dung dung thuat toan da chon o muc 1 -- neu khong thi con so o hai muc
+    // khong con lien quan gi den nhau
+    thuat_toan: document.querySelector('input[name=thuat_toan]:checked').value,
+    gom_hom_nay:
+      document.querySelector('input[name=bat_dau]:checked').value === 'nay',
+  }, function (d) {
+    const m = d.match(/^BUOC (\d\/\d) -- (.+)$/);
+    if (m) $('#trang-thai-2').textContent = m[1] + ' ' + m[2];
+  }, xong2, veDuBao);
+});
+</script>
+</body>
+</html>

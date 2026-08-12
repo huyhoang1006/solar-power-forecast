@@ -1,0 +1,26 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# IDE
+.idea/
+.vscode/
+
+# Dữ liệu và sản phẩm sinh tự động
+data/csv/
+data/dataset/
+data/du_bao/
+data/mo_hinh/
+data/report/
+data/thu_nghiem/
+
+# Bí mật và cấu hình cá nhân
+.env
+.env.*
+*.key
+
+# File tạm
+*.log
+*.tmp
