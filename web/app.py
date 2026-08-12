@@ -592,6 +592,13 @@ def du_bao_tuong_lai():
     """
     don_cong_viec_cu()
     ct = request.get_json(force=True)
+    model_id = str(ct.get("model_id") or "").strip()
+    if not model_id:
+        return {"loi": "Hay chon model dung de du bao."}, 400
+    try:
+        nap_model_theo_id(model_id)
+    except ValueError as e:
+        return {"loi": str(e)}, 400
     ma = uuid.uuid4().hex[:12]
     cv = {"hang": queue.Queue(), "ket_qua": None, "loi": None,
           "xong": False, "luc": time.time()}
@@ -600,10 +607,10 @@ def du_bao_tuong_lai():
 
     def chay():
         try:
-            kq = DB.du_bao_tuong_lai(ct["duong_dan"], int(ct.get("so_ngay", 3)),
-                                     ct.get("thuat_toan", "gbm"),
-                                     bool(ct.get("gom_hom_nay")),
-                                     ghi_log=cv["hang"].put)
+            kq = DB.du_bao_tuong_lai(
+                ct["duong_dan"], int(ct.get("so_ngay", 3)),
+                gom_hom_nay=bool(ct.get("gom_hom_nay")),
+                ghi_log=cv["hang"].put, model_id=model_id)
             kq["loai_cong_viec"] = "du_bao"
             cv["ket_qua"] = kq
         except Exception as e:                       # noqa: BLE001
@@ -663,14 +670,14 @@ def xuat_model_route(ma):
                      mimetype="application/octet-stream")
 
 
-@app.get("/xuat-model-hien-tai/<thuat_toan>")
-def xuat_model_hien_tai_route(thuat_toan):
-    """Tai model khong nhiet hien dang duoc he thong dung cho thuat toan da chon."""
-    if thuat_toan not in H.THUAT_TOAN:
-        return "Khong biet thuat toan nay.", 404
-    duong = DB.duong_mo_hinh(thuat_toan, bo_nhiet=True).resolve()
-    if duong.parent != DB.THU_MUC_MO_HINH.resolve() or not duong.is_file():
-        return "Chua co model hien tai cho thuat toan nay. Hay huan luyen truoc.", 404
+@app.get("/xuat-model-hien-tai/<model_id>")
+def xuat_model_hien_tai_route(model_id):
+    """Tai dung model dang duoc chon cho du bao o muc 3."""
+    try:
+        nap_model_theo_id(model_id)
+    except ValueError as e:
+        return str(e), 404
+    duong = (DB.THU_MUC_MO_HINH / f"{Path(model_id).stem}.joblib").resolve()
     return send_file(duong, as_attachment=True, download_name=duong.name,
                      mimetype="application/octet-stream")
 
@@ -882,11 +889,6 @@ def tien_do(ma):
 def trang_chu():
     ds = liet_ke_bo_du_lieu()
     loi, tom_tat = None, None
-    mo_hinh_hien_co = {
-        ma: DB.duong_mo_hinh(ma, bo_nhiet=True).is_file()
-        for ma in H.THUAT_TOAN
-    }
-
     chon = {
         "duong_dan": request.args.get("duong_dan") or (ds[0]["duong_dan"] if ds else ""),
         "thuat_toan": "gbm",
@@ -901,8 +903,7 @@ def trang_chu():
             loi = f"Khong doc duoc bo du lieu: {e}"
 
     return render_template("index.html", ds=ds, chon=chon, tom_tat=tom_tat,
-                           thuat_toan=H.THUAT_TOAN, giai_thich=GIAI_THICH, loi=loi,
-                           mo_hinh_hien_co=mo_hinh_hien_co)
+                           thuat_toan=H.THUAT_TOAN, giai_thich=GIAI_THICH, loi=loi)
 
 
 if __name__ == "__main__":

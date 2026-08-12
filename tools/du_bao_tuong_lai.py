@@ -318,21 +318,44 @@ def nap_mo_hinh(thuat_toan, ghi_log=print):
     return goi
 
 
+def nap_mo_hinh_theo_id(model_id, ghi_log=print):
+    """Nap dung model trong catalog, khong suy dien tu ma thuat toan."""
+    ten = Path(str(model_id)).stem
+    duong = (THU_MUC_MO_HINH / f"{ten}.joblib").resolve()
+    if duong.parent != THU_MUC_MO_HINH.resolve() or not duong.is_file():
+        raise ValueError("Khong tim thay model da chon.")
+    import joblib
+    goi = joblib.load(duong)
+    s = goi.get("sieu_du_lieu", {})
+    ghi_log(f"  Mo hinh         : {duong.name}")
+    ghi_log(f"  Huan luyen luc  : {str(s.get('huan_luyen_luc', ''))[:19].replace('T', ' ')} UTC")
+    ghi_log(f"  Hoc tu          : {int(s.get('so_mau', 0)):,} o ban ngay, "
+            f"{str((s.get('pham_vi') or ['', ''])[0])[:10]} -> "
+            f"{str((s.get('pham_vi') or ['', ''])[1])[:10]}")
+    ghi_log(f"  Van tay du lieu : {str(goi.get('van_tay', ''))[:16]}")
+    return goi, duong.name
+
+
 # ================================================================ 4. du bao
 def du_bao_tuong_lai(duong_du_lieu, so_ngay=3, thuat_toan="gbm", gom_hom_nay=False,
-                     ma_mo_hinh=None, ghi_log=print):
+                     ma_mo_hinh=None, ghi_log=print, model_id=None):
     """Du bao bang mo hinh DA LUU. Ham nay khong bao gio huan luyen."""
     d = pd.read_parquet(duong_du_lieu) if str(duong_du_lieu).endswith(".parquet") \
         else pd.read_csv(duong_du_lieu, index_col=0, parse_dates=True)
     d = d.sort_index()
-    if thuat_toan not in H.THUAT_TOAN:
-        raise ValueError(f"Khong biet thuat toan: {thuat_toan}")
-
     ghi_log("BUOC 1/4 -- Nap mo hinh da huan luyen")
-    goi = nap_mo_hinh(thuat_toan, ghi_log)
+    if model_id:
+        goi, tep_model = nap_mo_hinh_theo_id(model_id, ghi_log)
+        thuat_toan = goi.get("sieu_du_lieu", {}).get("thuat_toan", thuat_toan)
+    else:
+        # Giu tuong thich cho cac script CLI cu; giao dien web bat buoc model_id.
+        if thuat_toan not in H.THUAT_TOAN:
+            raise ValueError(f"Khong biet thuat toan: {thuat_toan}")
+        goi = nap_mo_hinh(thuat_toan, ghi_log)
+        tep_model = duong_mo_hinh(thuat_toan).name
     mo, nen_dem = goi["mo_hinh"], goi["nen_dem_mw"]
     sdl = {**goi["sieu_du_lieu"], "van_tay": goi["van_tay"],
-           "tep": duong_mo_hinh(thuat_toan).name}
+           "tep": tep_model}
     cols = sdl["bien_dau_vao"]
     n_mau, n_vong = sdl["so_mau"], sdl.get("so_vong_lap")
     thieu = [c for c in cols if c not in d.columns]
@@ -342,7 +365,14 @@ def du_bao_tuong_lai(duong_du_lieu, so_ngay=3, thuat_toan="gbm", gom_hom_nay=Fal
 
     # So van tay CHI de bao, khong de kich hoat. Quyet dinh huan luyen lai la cua
     # nguoi dung o muc 1, khong phai cua may.
-    vt_nay = _van_tay(d, cols, thuat_toan)
+    # Chi so lai dung pham vi model da hoc. Du lieu moi sau moc ket thuc la binh
+    # thuong, khong co nghia noi dung tap huan luyen cu da bi thay doi.
+    d_kiem_tra = d
+    pham_vi = sdl.get("pham_vi") or []
+    if len(pham_vi) == 2:
+        bat_dau, ket_thuc = pd.Timestamp(pham_vi[0]), pd.Timestamp(pham_vi[1])
+        d_kiem_tra = d[(d.index >= bat_dau) & (d.index <= ket_thuc)]
+    vt_nay = _van_tay(d_kiem_tra, cols, thuat_toan)
     sdl["du_lieu_da_doi"] = vt_nay != goi["van_tay"]
     if sdl["du_lieu_da_doi"]:
         ghi_log("  LUU Y: bo du lieu hien tai da khac voi luc huan luyen mo hinh nay.")
@@ -542,6 +572,8 @@ def main():
     ap.add_argument("--du-lieu", default=str(goc / "data" / "dataset" / "bo_du_lieu_15min.parquet"))
     ap.add_argument("--so-ngay", type=int, default=3)
     ap.add_argument("--thuat-toan", default="gbm", choices=list(H.THUAT_TOAN))
+    ap.add_argument("--model-id", default=None,
+                    help="ID model trong data/mo_hinh, vi du model_03d4f2514b73")
     ap.add_argument("--gom-hom-nay", action="store_true",
                     help="tinh ca hom nay, khong chi tu ngay mai")
     ap.add_argument("--mo-hinh", nargs="*", default=None)
@@ -551,7 +583,8 @@ def main():
     duong = Path(a.du_lieu)
     if not duong.exists():
         duong = duong.with_suffix(".csv")
-    kq = du_bao_tuong_lai(duong, a.so_ngay, a.thuat_toan, a.gom_hom_nay, a.mo_hinh)
+    kq = du_bao_tuong_lai(duong, a.so_ngay, a.thuat_toan, a.gom_hom_nay,
+                          a.mo_hinh, model_id=a.model_id)
 
     print("\n" + "=" * 74)
     print(f'{"Ngay":14}{"San luong":>12}{"Dinh":>10}{"Luc":>8}{"He so tai":>11}{"kt tb":>8}')

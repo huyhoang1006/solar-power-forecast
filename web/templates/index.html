@@ -160,12 +160,6 @@
              placeholder="Tên model">
     </div>
     <div><button id="nut" type="button">Huấn luyện</button></div>
-    <div><button id="nut-model-hien-tai" type="button">Xuất model hiện tại</button></div>
-    <div><a href="/tai-huong-dan-deploy-model"
-            style="display:inline-block;background:#548235;color:#fff;text-decoration:none;
-                   padding:10px 18px;border-radius:4px;font-weight:500">
-      Download hướng dẫn deploy
-    </a></div>
     <div class="dang-chay" id="dang-chay">
       <div class="quay"></div><span id="trang-thai">Đang khởi động…</span>
     </div>
@@ -244,6 +238,16 @@ Model   ██ ██ ██ ██ ██ ██ │ ██ ██ ██ █�
 <section>
   <h2>3. Dự báo ngày mai và hai ngày kế tiếp</h2>
   <div class="hang">
+    <div>
+      <label>Model dùng để dự báo</label>
+      <select id="db-model" style="min-width:280px"></select>
+    </div>
+    <div><button id="nut-model-hien-tai" type="button">Xuất model hiện tại</button></div>
+    <div><a href="/tai-huong-dan-deploy-model"
+            style="display:inline-block;background:#548235;color:#fff;text-decoration:none;
+                   padding:10px 18px;border-radius:4px;font-weight:500">
+      Download hướng dẫn deploy
+    </a></div>
     <div>
       <label>Phạm vi dự báo</label>
       <div class="thang" id="so-ngay">
@@ -368,7 +372,6 @@ Model   ██ ██ ██ ██ ██ ██ │ ██ ██ ██ █�
 
 <script>
 const $ = function (s) { return document.querySelector(s); };
-const MO_HINH_HIEN_CO = {{ mo_hinh_hien_co | tojson }};
 function tenModelNgauNhien() {
   const d = new Date(), p = function (v) { return String(v).padStart(2, '0'); };
   return 'model-' + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '-'
@@ -385,16 +388,18 @@ document.querySelectorAll('.the input').forEach(function (r) {
 });
 
 function capNhatNutModelHienTai() {
-  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  const ma = $('#db-model').value;
   const nut = $('#nut-model-hien-tai');
-  nut.disabled = !MO_HINH_HIEN_CO[ma];
-  nut.title = nut.disabled ? 'Chưa có model cho thuật toán này' : 'Tải model đang được dùng';
+  nut.disabled = !ma;
+  nut.title = nut.disabled ? 'Chưa chọn model dự báo' : 'Tải model đang được chọn ở mục 3';
 }
 
 $('#nut-model-hien-tai').addEventListener('click', function () {
-  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  const ma = $('#db-model').value;
+  if (!ma) return;
   window.location.href = '/xuat-model-hien-tai/' + encodeURIComponent(ma);
 });
+$('#db-model').addEventListener('change', capNhatNutModelHienTai);
 capNhatNutModelHienTai();
 
 function thoat(s) {
@@ -456,7 +461,6 @@ function veKetQua(kq, ma) {
   // Mo hinh vua duoc ghi nhan -- day la cho duy nhat trong he thong sinh ra mo hinh
   const ml = kq.mo_hinh_da_luu;
   if (ml) {
-    MO_HINH_HIEN_CO[kq.thuat_toan] = true;
     capNhatNutModelHienTai();
     napDanhSachModel(String(ml.tep || '').replace(/\.joblib$/i, ''));
     $('#ten-model').value = tenModelNgauNhien();
@@ -1214,14 +1218,16 @@ document.querySelectorAll('#so-ngay input, #bat-dau-tu input').forEach(function 
 capNhatSoNgay();
 
 $('#nut-du-bao').addEventListener('click', function () {
+  if (!$('#db-model').value) {
+    $('#trang-thai-2').textContent = 'Hãy chọn model dùng để dự báo.';
+    return;
+  }
   $('#trang-thai-2').textContent = 'Đang khởi động…';
   chayCongViec('/du-bao-tuong-lai', {
     duong_dan: $('#duong-dan').value,
+    model_id: $('#db-model').value,
     so_ngay: parseInt(
       document.querySelector('#so-ngay input:checked').value, 10),
-    // dung dung thuat toan da chon o muc 1 -- neu khong thi con so o hai muc
-    // khong con lien quan gi den nhau
-    thuat_toan: document.querySelector('input[name=thuat_toan]:checked').value,
     gom_hom_nay:
       document.querySelector('input[name=bat_dau]:checked').value === 'nay',
   }, function (d) {
@@ -1451,6 +1457,7 @@ document.addEventListener('click', function (e) {
 
 async function napDanhSachModel(modelMoi) {
   const modelDgCu = $('#dg-model').value;
+  const modelDbCu = $('#db-model').value;
   const modelRtCu = (document.querySelector('#rt-model-list input:checked') || {}).value || '';
   const r = await fetch('/api/models?_=' + Date.now(), {cache:'no-store'}), kq = await r.json();
   rtCatalog = kq.models || [];
@@ -1460,6 +1467,13 @@ async function napDanhSachModel(modelMoi) {
   const modelDgCanChon = modelMoi || modelDgCu;
   if (modelDgCanChon && rtCatalog.some(function (m) { return m.id === modelDgCanChon; }))
     $('#dg-model').value = modelDgCanChon;
+  $('#db-model').innerHTML = rtCatalog.length ? rtCatalog.map(function (m) {
+    return '<option value="' + thoatThuocTinh(m.id) + '">' + thoat(m.ten) + '</option>';
+  }).join('') : '<option value="">Chưa có model</option>';
+  const modelDbCanChon = modelMoi || modelDbCu;
+  if (modelDbCanChon && rtCatalog.some(function (m) { return m.id === modelDbCanChon; }))
+    $('#db-model').value = modelDbCanChon;
+  capNhatNutModelHienTai();
   const modelRtCanChon = modelMoi || modelRtCu;
   $('#rt-model-list').innerHTML = rtCatalog.length ? rtCatalog.map(function (m, i) {
     return '<label><input type="radio" name="rt_model" value="' + thoatThuocTinh(m.id) + '" data-ten="'
