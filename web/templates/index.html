@@ -97,7 +97,22 @@
   .bang-cuon th { position: sticky; top: 0; }
   .am { color: var(--err); }
   .duong { color: var(--ok); }
-  .bieu-do { width: 100%; height: 260px; }
+  .bieu-do { width: 100%; height: 310px; }
+  .model-dropdown { position: relative; width: min(520px, 100%); margin: 10px 0 16px; }
+  .model-dropdown > button { width: 100%; text-align: left; background: #fff; color: #222;
+    border: 1px solid var(--line); padding: 9px 38px 9px 12px; position: relative; }
+  .model-dropdown > button:hover { background: #f7f9fb; }
+  .model-dropdown > button::after { content: '▾'; position: absolute; right: 13px; color: var(--navy); }
+  .model-dropdown.mo-danh-sach > button::after { content: '▴'; }
+  .model-menu { display: none; position: absolute; z-index: 20; top: calc(100% + 4px);
+    left: 0; right: 0; max-height: 260px; overflow-y: auto; background: #fff;
+    border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 8px 22px #0002;
+    padding: 6px; }
+  .model-dropdown.mo-danh-sach .model-menu { display: block; }
+  .model-menu label { display: flex; align-items: center; gap: 9px; margin: 0;
+    padding: 8px 9px; color: #222; cursor: pointer; border-radius: 3px; }
+  .model-menu label:hover { background: #f2f6fa; }
+  .model-menu input { margin: 0; }
 </style>
 </head>
 <body>
@@ -138,6 +153,11 @@
         <option value="1" selected>Bỏ ra (mặc định)</option>
         <option value="0">Có dùng (chỉ thử nghiệm)</option>
       </select>
+    </div>
+    <div>
+      <label>Tên model (không được trùng)</label>
+      <input id="ten-model" maxlength="80" style="padding:8px 9px;min-width:270px"
+             placeholder="Tên model">
     </div>
     <div><button id="nut" type="button">Huấn luyện</button></div>
     <div><button id="nut-model-hien-tai" type="button">Xuất model hiện tại</button></div>
@@ -209,7 +229,29 @@ Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ �
 </section>
 
 <section>
-  <h2>2. Dự báo ngày mai và hai ngày kế tiếp</h2>
+  <h2>2. Đánh giá model đã lưu trên dữ liệu quá khứ</h2>
+  <div class="hang">
+    <div><label>Model cần đánh giá</label><select id="dg-model"></select></div>
+    <div><button type="button" id="dg-nut">Chạy đánh giá</button></div>
+  </div>
+  <h3>Chọn tháng có dữ liệu thực để so sánh</h3>
+  <div class="thang" id="dg-thang">
+    {% if tom_tat %}{% for t in tom_tat.thang %}
+    <label><input type="checkbox" value="{{ t.ma }}"> {{ t.nhan }}</label>
+    {% endfor %}{% endif %}
+  </div>
+  <div class="nhanh" id="dg-nhanh">
+    <a data-dg="3">3 tháng cuối</a><a data-dg="6">6 tháng cuối</a>
+    <a data-dg="tat-ca">Tất cả</a><a data-dg="xoa">Bỏ chọn hết</a>
+  </div>
+  <div class="luu-y"><b>Lưu ý:</b> đây là đánh giá hồi cứu model đã lưu. Nếu model
+    đã từng học chính các tháng được chọn thì kết quả có thể lạc quan; phần rolling-origin
+    ở mục 1 mới là kiểm định ngoài mẫu theo thời gian.</div>
+  <div id="dg-ket-qua" style="margin-top:16px"></div>
+</section>
+
+<section>
+  <h2>3. Dự báo ngày mai và hai ngày kế tiếp</h2>
   <div class="hang">
     <div>
       <label>Phạm vi dự báo</label>
@@ -262,11 +304,16 @@ Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ �
 </section>
 
 <section>
-  <h2>3. Theo dõi công suất realtime</h2>
+  <h2>4. Theo dõi công suất realtime</h2>
   <p class="mo">Tự cập nhật mỗi 15 phút từ thời tiết hiện tại của Open-Meteo và model
     đang chọn. Mỗi lượt phát hành 16 điểm cho 4 giờ tới. Toàn bộ phiên bản dự báo
     được lưu trong SQLite và tự tải lại ngay khi mở ứng dụng. Trục ngày bắt đầu lúc
     05:00; phần trước khi hệ thống phát hành thật chỉ có đường thời tiết hồi cứu.</p>
+  <label>Model dùng để forecast realtime (chọn một)</label>
+  <div class="model-dropdown" id="rt-model-dropdown">
+    <button type="button" id="rt-model-toggle" aria-expanded="false">Đang tải danh sách model…</button>
+    <div class="model-menu" id="rt-model-list"></div>
+  </div>
   <div class="chi-so" id="realtime-chi-so">
     <div class="o nhan-manh"><div class="ten">Công suất dự đoán</div>
       <div class="gia-tri" id="rt-power">—</div></div>
@@ -293,7 +340,7 @@ Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ �
 
 {% if tom_tat %}
 <section>
-  <h2>4. Dữ liệu dùng để huấn luyện</h2>
+  <h2>5. Dữ liệu dùng để huấn luyện</h2>
   <div class="chi-so">
     <div class="o"><div class="ten">Tổng số ô</div>
       <div class="gia-tri">{{ '{:,}'.format(tom_tat.so_o) }}</div></div>
@@ -331,6 +378,12 @@ Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ �
 <script>
 const $ = function (s) { return document.querySelector(s); };
 const MO_HINH_HIEN_CO = {{ mo_hinh_hien_co | tojson }};
+function tenModelNgauNhien() {
+  const d = new Date(), p = function (v) { return String(v).padStart(2, '0'); };
+  return 'model-' + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '-'
+    + p(d.getHours()) + p(d.getMinutes()) + '-' + Math.random().toString(36).slice(2, 6);
+}
+$('#ten-model').value = tenModelNgauNhien();
 
 document.querySelectorAll('.the input').forEach(function (r) {
   r.addEventListener('change', function () {
@@ -357,6 +410,9 @@ function thoat(s) {
   return String(s).replace(/[&<>]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c];
   });
+}
+function thoatThuocTinh(s) {
+  return thoat(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // To mau tung dong nhat ky theo loai
@@ -411,6 +467,8 @@ function veKetQua(kq, ma) {
   if (ml) {
     MO_HINH_HIEN_CO[kq.thuat_toan] = true;
     capNhatNutModelHienTai();
+    napDanhSachModel();
+    $('#ten-model').value = tenModelNgauNhien();
     h += '<div class="luu-y" style="border-left-color:#548235;background:#f4f8f0">'
        + '<b>Đã lưu mô hình: ' + thoat(ml.tep) + '</b><br>'
        + 'Học từ ' + Number(ml.so_mau).toLocaleString('vi-VN') + ' ô ban ngày · '
@@ -510,8 +568,10 @@ function veBieuDo(diem) {
   return g;
 }
 
-function veNgay(ngay) {
-  const g = theoNgay[ngay];
+function veNgay(ngay, nguon, dich) {
+  nguon = nguon || theoNgay;
+  dich = dich || '#chi-tiet-ngay';
+  const g = nguon[ngay];
   if (!g) return;
   const so = function (v) { return v.toFixed(3).replace('.', ','); };
   const pt = function (v) { return v.toFixed(2).replace('.', ','); };
@@ -552,14 +612,59 @@ function veNgay(ngay) {
   });
   b2 += '</table></div>';
 
-  $('#chi-tiet-ngay').innerHTML =
-      veBieuDo(g.diem)
+  $(dich).innerHTML =
+      '<div class="ngay-zoom" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0">'
+    + '<button type="button" class="ngay-zoom-in">Zoom in +</button>'
+    + '<button type="button" class="ngay-zoom-out">Zoom out &minus;</button>'
+    + '<button type="button" class="ngay-zoom-reset">To&agrave;n ng&agrave;y</button>'
+    + '<span class="ngay-zoom-khoang" style="color:#666"></span></div>'
+    + '<div class="ngay-bieu-do"></div>'
     + '<div class="hai-bang" style="margin-top:12px">' + b1 + b2 + '</div>'
     + '<div class="luu-y">Đây là công cụ <b>xem</b>, không phải công cụ chấm. '
     + 'Một ngày chỉ có khoảng ' + g.so_o + ' ô ban ngày nên chỉ số của riêng nó dao '
     + 'động rất mạnh — đo trên tháng 5/2026 thì ngày tốt nhất 2,43% còn ngày tệ nhất '
     + '7,46%, chênh ba lần. Con số dùng để kết luận là NMAE của cả tháng ở phần trên.'
     + '</div>';
+
+  // Phong to/thu nho bieu do theo tam cua khoang dang xem.
+  const hop = $(dich);
+  const tongDiem = g.diem.length;
+  let soDiemXem = tongDiem;
+  let diemDau = 0;
+  const soDiemToiThieu = Math.min(8, tongDiem);
+
+  function veLaiBieuDoNgay() {
+    soDiemXem = Math.max(soDiemToiThieu, Math.min(tongDiem, soDiemXem));
+    diemDau = Math.max(0, Math.min(Math.max(0, tongDiem - soDiemXem), diemDau));
+    const ds = g.diem.slice(diemDau, diemDau + soDiemXem);
+    hop.querySelector('.ngay-bieu-do').innerHTML = veBieuDo(ds);
+    const nhan = hop.querySelector('.ngay-zoom-khoang');
+    nhan.textContent = ds.length
+      ? ds[0][0] + ' \u2192 ' + ds[ds.length - 1][0] + ' \u00b7 ' + ds.length + ' diem 15 phut'
+      : '';
+    hop.querySelector('.ngay-zoom-in').disabled = soDiemXem <= soDiemToiThieu;
+    hop.querySelector('.ngay-zoom-out').disabled = soDiemXem >= tongDiem;
+    hop.querySelector('.ngay-zoom-reset').disabled = soDiemXem >= tongDiem;
+  }
+
+  hop.querySelector('.ngay-zoom-in').addEventListener('click', function () {
+    const tam = diemDau + soDiemXem / 2;
+    soDiemXem = Math.max(soDiemToiThieu, Math.ceil(soDiemXem / 2));
+    diemDau = Math.round(tam - soDiemXem / 2);
+    veLaiBieuDoNgay();
+  });
+  hop.querySelector('.ngay-zoom-out').addEventListener('click', function () {
+    const tam = diemDau + soDiemXem / 2;
+    soDiemXem = Math.min(tongDiem, soDiemXem * 2);
+    diemDau = Math.round(tam - soDiemXem / 2);
+    veLaiBieuDoNgay();
+  });
+  hop.querySelector('.ngay-zoom-reset').addEventListener('click', function () {
+    soDiemXem = tongDiem;
+    diemDau = 0;
+    veLaiBieuDoNgay();
+  });
+  veLaiBieuDoNgay();
 }
 
 function xong(dangChay) {
@@ -1005,7 +1110,9 @@ async function chayCongViec(url, ct, datTrangThai, ketThuc, ve) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ct),
     });
-    ma = (await r.json()).ma;
+    const khoiDong = await r.json();
+    if (!r.ok || khoiDong.loi) throw new Error(khoiDong.loi || ('HTTP ' + r.status));
+    ma = khoiDong.ma;
     maCongViec = ma;                 // de nut xuat Excel lay dung ket qua nay
   } catch (e) {
     cacDong.push('Không gọi được máy chủ: ' + e);
@@ -1081,8 +1188,7 @@ document.querySelectorAll('.nhanh a').forEach(function (a) {
     capNhatThang();
   });
 });
-// mac dinh chon 3 thang cuoi
-oThang().slice(-3).forEach(function (o) { o.checked = true; });
+// Khong chon mac dinh: nguoi dung quyet dinh ro thang nao dung de cham.
 capNhatThang();
 
 $('#nut').addEventListener('click', function () {
@@ -1091,6 +1197,7 @@ $('#nut').addEventListener('click', function () {
     thuat_toan: document.querySelector('input[name=thuat_toan]:checked').value,
     so_fold: 3,
     bo_nhiet: $('#bo-nhiet').value === '1',
+    ten_mo_hinh: $('#ten-model').value.trim(),
     thang_cham: thangDaChon(),
   };
   if (ct.thang_cham.length === 0) {
@@ -1135,10 +1242,11 @@ $('#nut-du-bao').addEventListener('click', function () {
 
 // ---------------------------------------------------------- realtime 15 phut
 let rtTatCa = [], rtSoDiem = 96, rtBatDau = 0, rtDaDatHomNay = false;
+let rtModelLines = [], rtCatalog = [];
 
 function veRealtime(ds) {
   if (!ds.length) return '<p class="mo">Chưa có điểm realtime.</p>';
-  const W = 1000, Hh = 260, L = 54, R = 58, T = 20, B = 36;
+  const W = 1000, Hh = 310, L = 54, R = 58, T = 20, B = 82;
   const pw = W - L - R, ph = Hh - T - B;
   const x = function (i) { return L + (ds.length === 1 ? pw / 2 : i * pw / (ds.length - 1)); };
   const yP = function (v) { return T + ph - Math.max(0, Math.min(40, v)) / 40 * ph; };
@@ -1163,19 +1271,33 @@ function veRealtime(ds) {
         + ' style="cursor:help"><title>' + tip + '</title></circle>';
     }).join('');
   };
-  let g = '<svg viewBox="0 0 ' + W + ' ' + Hh + '" width="100%" height="260" role="img"'
+  let g = '<svg viewBox="0 0 ' + W + ' ' + Hh + '" width="100%" height="310" role="img"'
     + ' aria-label="Biểu đồ công suất realtime"><rect x="' + L + '" y="' + T
     + '" width="' + pw + '" height="' + ph + '" fill="#fafbfc" stroke="#d9d9d9"/>';
   [0, 10, 20, 30, 40].forEach(function (v) {
     const y = yP(v); g += '<line x1="' + L + '" x2="' + (W-R) + '" y1="' + y
       + '" y2="' + y + '" stroke="#e8e8e8"/><text x="' + (L-8) + '" y="' + (y+4)
       + '" text-anchor="end" font-size="11">' + v + '</text>'; });
-  g += '<path d="' + path('past') + '" fill="none" stroke="#7f8c8d" stroke-width="2"/>'
-    + '<path d="' + path('updated') + '" fill="none" stroke="#548235" stroke-width="2.5"/>'
-    + '<path d="' + path('previous') + '" fill="none" stroke="#c55a11" stroke-width="2" stroke-dasharray="6 4"/>'
-    + '<path d="' + path('latest') + '" fill="none" stroke="#1f4e79" stroke-width="3"/>'
-    + cham('past', '#7f8c8d') + cham('updated', '#548235')
-    + cham('previous', '#c55a11') + cham('latest', '#1f4e79');
+  g += '<path d="' + path('updated') + '" fill="none" stroke="#2e8b57" stroke-width="2.5"/>'
+    + cham('updated', '#2e8b57');
+  rtModelLines.forEach(function (m, row) {
+    g += '<path d="' + path(m.key) + '" fill="none" stroke="' + m.color
+      + '" stroke-width="2.5"/>' + cham(m.key, m.color);
+    const idx = ds.map(function(d,i){return d[m.key] == null ? -1 : i;})
+      .filter(function(i){return i >= 0;});
+    if (idx.length) {
+      const doan=[]; let a=idx[0], b=idx[0];
+      idx.slice(1).forEach(function (v) { if (v === b+1) b=v; else {doan.push([a,b]); a=b=v;} });
+      doan.push([a,b]);
+      doan.forEach(function (ab, j) {
+        const xa=x(ab[0]), xb=x(ab[1]), yy=T+ph+29+row*17;
+        g += '<line x1="'+xa+'" x2="'+Math.max(xa+5,xb)+'" y1="'+yy+'" y2="'+yy
+          +'" stroke="'+m.color+'" stroke-width="12"/>';
+        if (j===0) g += '<text x="'+(xa+4)+'" y="'+(yy+4)
+          +'" font-size="10" fill="#fff">'+thoat(m.name)+'</text>';
+      });
+    }
+  });
   let iHienTai = -1, bayGio = Date.now();
   ds.forEach(function (d, i) { if (new Date(d.time).getTime() <= bayGio) iHienTai = i; });
   if (iHienTai >= 0 && iHienTai < ds.length - 1) {
@@ -1190,22 +1312,33 @@ function veRealtime(ds) {
       g += '<text x="' + x(i) + '" y="' + (Hh-12) + '" text-anchor="middle" font-size="11">'
         + nhan + '</text>'; }
   });
-  return g + '<text x="' + (L+8) + '" y="14" fill="#1f4e79" font-size="11">━ Mới nhất</text>'
-    + '<text x="' + (L+95) + '" y="14" fill="#c55a11" font-size="11">┄ Trước đó</text>'
-    + '<text x="' + (L+185) + '" y="14" fill="#548235" font-size="11">━ Thời tiết hồi cứu/cập nhật</text>'
-    + '<text x="' + (L+355) + '" y="14" fill="#7f8c8d" font-size="11">━ Đã phát hành</text></svg>';
+  let chuGiai = '<text x="' + (L+8) + '" y="14" fill="#2e8b57" font-size="11">'
+    + '━ Thời tiết hồi cứu/cập nhật</text>';
+  rtModelLines.forEach(function (m, i) {
+    chuGiai += '<text x="' + (L+210+i*150) + '" y="14" fill="' + m.color
+      + '" font-size="11">━ ' + thoat(m.name) + '</text>';
+  });
+  return g + chuGiai + '<text x="' + L + '" y="' + (T+ph+16)
+    + '" font-size="10">Model theo khoảng:</text></svg>';
 }
 
-function napChuoiRealtime(kq) {
+function napChuoiRealtime(dsKetQua) {
   const map = {};
   const gan = function (ds, ten) { (ds || []).forEach(function (d) {
     if (!map[d.time]) map[d.time] = {time:d.time};
     map[d.time][ten] = d.power_mw; map[d.time][ten + 'Ghi'] = d.ghi_wm2;
   }); };
-  gan(kq.past_forecast, 'past');
-  gan(kq.weather_updated, 'updated');
-  gan(kq.previous_forecast, 'previous');
-  gan(kq.latest_forecast, 'latest');
+  const mau = ['#1565c0','#e53935','#f39c12','#00a6a6','#d81b60','#795548'];
+  rtModelLines = [];
+  dsKetQua.forEach(function (kq, i) {
+    if (kq.selected) gan(kq.weather_updated, 'updated');
+    const key = 'model' + i;
+    // Qua khu luon giu dung model da phat hanh. Chi model dang chon moi ve
+    // 16 diem tuong lai, nen doi dropdown khong lam mat/doi mau lich su.
+    gan(kq.past_forecast, key);
+    if (kq.selected) gan(kq.latest_forecast, key);
+    rtModelLines.push({key:key, name:kq.model_name || kq.model_id, color:mau[i % mau.length]});
+  });
   const pad = function (v) { return String(v).padStart(2, '0'); };
   const homNay = new Date();
   const batDau = new Date(homNay.getFullYear(), homNay.getMonth(), homNay.getDate(), 5, 0, 0);
@@ -1280,9 +1413,9 @@ $('#rt-scroll').addEventListener('input', function () {
   rtBatDau = Number(this.value); veKhungRealtime();
 });
 
-function apDungRealtime(kq, veMoiNhat) {
+function apDungRealtime(dsKetQua, veMoiNhat) {
   const dangOPhiaMoi = rtBatDau + rtSoDiem >= rtTatCa.length;
-  rtTatCa = napChuoiRealtime(kq);
+  rtTatCa = napChuoiRealtime(dsKetQua);
   if (!rtDaDatHomNay && rtTatCa.length) {
     const n = new Date(), pad = function (v) { return String(v).padStart(2, '0'); };
     const moc5 = n.getFullYear() + '-' + pad(n.getMonth()+1) + '-' + pad(n.getDate()) + 'T05:00';
@@ -1292,8 +1425,9 @@ function apDungRealtime(kq, veMoiNhat) {
     rtDaDatHomNay = true;
   } else if (dangOPhiaMoi) rtBatDau = Math.max(0, rtTatCa.length - rtSoDiem);
   veKhungRealtime();
-  if (veMoiNhat && kq.current) {
-    const d = kq.current;
+  const kqMoi = dsKetQua[0] || {};
+  if (veMoiNhat && kqMoi.current) {
+    const d = kqMoi.current;
     $('#rt-power').textContent = Number(d.power_mw).toFixed(2) + ' MW';
     $('#rt-ghi').textContent = Number(d.ghi_wm2).toFixed(0) + ' W/m²';
     $('#rt-temp').textContent = d.temperature_c === null ? '—' : d.temperature_c + ' °C';
@@ -1301,14 +1435,140 @@ function apDungRealtime(kq, veMoiNhat) {
   }
 }
 
+function modelRealtimeDaChon() {
+  const o = document.querySelector('#rt-model-list input:checked');
+  return o ? [o.value] : [];
+}
+
+function capNhatNhanDropdownModel() {
+  const chon = Array.from(document.querySelectorAll('#rt-model-list input:checked'));
+  const ten = chon.map(function (o) { return o.dataset.ten; });
+  $('#rt-model-toggle').textContent = ten.length ? ten[0] : 'Chưa chọn model';
+}
+
+$('#rt-model-toggle').addEventListener('click', function () {
+  const hop = $('#rt-model-dropdown');
+  const mo = !hop.classList.contains('mo-danh-sach');
+  hop.classList.toggle('mo-danh-sach', mo);
+  this.setAttribute('aria-expanded', String(mo));
+});
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('#rt-model-dropdown')) {
+    $('#rt-model-dropdown').classList.remove('mo-danh-sach');
+    $('#rt-model-toggle').setAttribute('aria-expanded', 'false');
+  }
+});
+
+async function napDanhSachModel() {
+  const r = await fetch('/api/models'), kq = await r.json();
+  rtCatalog = kq.models || [];
+  $('#dg-model').innerHTML = rtCatalog.length ? rtCatalog.map(function (m) {
+    return '<option value="' + thoatThuocTinh(m.id) + '">' + thoat(m.ten) + '</option>';
+  }).join('') : '<option value="">Chưa có model</option>';
+  $('#rt-model-list').innerHTML = rtCatalog.length ? rtCatalog.map(function (m, i) {
+    return '<label><input type="radio" name="rt_model" value="' + thoatThuocTinh(m.id) + '" data-ten="'
+      + thoatThuocTinh(m.ten) + '" ' + (i === 0 ? 'checked' : '') + '> <span><b>'
+      + thoat(m.ten) + '</b>' + (m.thuat_toan ? '<br><span class="mo">'
+      + thoat(m.thuat_toan) + '</span>' : '') + '</span></label>';
+  }).join('') : '<span class="mo">Chưa có model đã training.</span>';
+  capNhatNhanDropdownModel();
+  document.querySelectorAll('#rt-model-list input').forEach(function (o) {
+    o.addEventListener('change', async function () {
+      capNhatNhanDropdownModel();
+      $('#rt-model-dropdown').classList.remove('mo-danh-sach');
+      $('#rt-model-toggle').setAttribute('aria-expanded', 'false');
+      rtDaDatHomNay = false; await taiLichSuRealtime(); capNhatRealtime();
+    });
+  });
+}
+
+// ---------------------------------------------------------- danh gia model da luu
+let dgTheoNgay = {};
+document.querySelectorAll('#dg-thang input').forEach(function (o) {
+  o.addEventListener('change', function () { o.closest('label').classList.toggle('chon', o.checked); });
+});
+document.querySelectorAll('#dg-nhanh a').forEach(function (a) {
+  a.addEventListener('click', function () {
+    const ds = Array.from(document.querySelectorAll('#dg-thang input'));
+    ds.forEach(function (o) { o.checked = false; });
+    if (a.dataset.dg === 'tat-ca') ds.forEach(function (o) { o.checked = true; });
+    else if (a.dataset.dg !== 'xoa')
+      ds.slice(-parseInt(a.dataset.dg, 10)).forEach(function (o) { o.checked = true; });
+    ds.forEach(function (o) { o.closest('label').classList.toggle('chon', o.checked); });
+  });
+});
+
+$('#dg-nut').addEventListener('click', async function () {
+  const thang = Array.from(document.querySelectorAll('#dg-thang input:checked'))
+    .map(function (o) { return o.value; });
+  if (!$('#dg-model').value || !thang.length) {
+    $('#dg-ket-qua').innerHTML = '<div class="loi">Hãy chọn model và ít nhất một tháng.</div>';
+    return;
+  }
+  this.disabled = true; this.textContent = 'Đang đánh giá…';
+  $('#dg-ket-qua').innerHTML = '<p class="mo">Đang chạy model trên dữ liệu quá khứ…</p>';
+  try {
+    const r = await fetch('/danh-gia-model', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+        model_id:$('#dg-model').value, duong_dan:$('#duong-dan').value, thang:thang})});
+    const kq = await r.json(); if (!r.ok || kq.loi) throw new Error(kq.loi || ('HTTP '+r.status));
+    const t=kq.tong_hop, f=function(v,n){return v==null?'—':Number(v).toFixed(n);};
+    let h='<h3>Kết quả — '+thoat(kq.model_name)+'</h3><div class="chi-so">'
+      +'<div class="o nhan-manh"><div class="ten">NMAE</div><div class="gia-tri">'+f(t['NMAE_%'],2)+'%</div></div>'
+      +'<div class="o"><div class="ten">MAE</div><div class="gia-tri">'+f(t.MAE,3)+'</div></div>'
+      +'<div class="o"><div class="ten">RMSE</div><div class="gia-tri">'+f(t.RMSE,3)+'</div></div>'
+      +'<div class="o"><div class="ten">Bias</div><div class="gia-tri">'+f(t.Bias,3)+'</div></div>'
+      +'<div class="o"><div class="ten">R²</div><div class="gia-tri">'+f(t.R2,3)+'</div></div></div>'
+      +'<table><tr><th>Tháng</th><th class="so">Số mẫu</th><th class="so">MAE</th>'
+      +'<th class="so">NMAE</th><th class="so">RMSE</th><th class="so">Bias</th><th class="so">R²</th></tr>';
+    (kq.theo_thang||[]).forEach(function(x){ h+='<tr><td>'+thoat(x.thang)+'</td>'
+      +'<td class="so">'+(x.n==null?'—':Number(x.n).toLocaleString('vi-VN'))+'</td>'
+      +'<td class="so">'+f(x.MAE,3)+'</td><td class="so">'+f(x['NMAE_%'],2)+'%</td>'
+      +'<td class="so">'+f(x.RMSE,3)+'</td><td class="so">'+f(x.Bias,3)+'</td>'
+      +'<td class="so">'+f(x.R2,3)+'</td></tr>'; });
+    dgTheoNgay = kq.theo_ngay || {};
+    const ngay = Object.keys(dgTheoNgay).sort();
+    h += '</table><p class="mo">Biến đầu vào: '+thoat(kq.bien_dau_vao.join(', '))+'</p>';
+    if (ngay.length) {
+      h += '<h3 style="margin-top:24px">Kết quả theo từng ngày</h3>'
+        + '<div class="hang" style="margin-bottom:14px"><div><label>Chọn ngày</label>'
+        + '<select id="dg-chon-ngay">' + ngay.map(function(n){const p=n.split('-');
+          return '<option value="'+n+'">'+p[2]+'/'+p[1]+'/'+p[0]+' — NMAE '
+            +Number(dgTheoNgay[n].nmae).toFixed(2)+'%</option>';}).join('')
+        + '</select></div><div class="nhanh"><a id="dg-ngay-tot">Ngày tốt nhất</a>'
+        + '<a id="dg-ngay-te">Ngày tệ nhất</a></div></div><div id="dg-chi-tiet-ngay"></div>';
+    }
+    $('#dg-ket-qua').innerHTML=h;
+    if (ngay.length) {
+      const hien=function(n){$('#dg-chon-ngay').value=n;veNgay(n,dgTheoNgay,'#dg-chi-tiet-ngay');};
+      $('#dg-chon-ngay').addEventListener('change',function(){hien(this.value);});
+      $('#dg-ngay-tot').addEventListener('click',function(){hien(ngay.reduce(function(a,b){
+        return dgTheoNgay[a].nmae<=dgTheoNgay[b].nmae?a:b;}));});
+      $('#dg-ngay-te').addEventListener('click',function(){hien(ngay.reduce(function(a,b){
+        return dgTheoNgay[a].nmae>=dgTheoNgay[b].nmae?a:b;}));});
+      hien(ngay[0]);
+    }
+  } catch(e) { $('#dg-ket-qua').innerHTML='<div class="loi">'+thoat(e.message)+'</div>'; }
+  finally { this.disabled=false; this.textContent='Chạy đánh giá'; }
+});
+
 async function taiLichSuRealtime() {
-  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  const ids = modelRealtimeDaChon();
+  if (!ids.length) { $('#rt-status').textContent = 'Hãy chọn ít nhất một model.'; return; }
   $('#rt-status').textContent = 'Đang tải lịch sử SQLite…';
   try {
-    const r = await fetch('/realtime/history?thuat_toan=' + encodeURIComponent(ma));
-    const kq = await r.json();
-    if (!r.ok || kq.loi) throw new Error(kq.loi || ('HTTP ' + r.status));
-    apDungRealtime(kq, false);
+    const r = await fetch('/realtime/history-all');
+    const tatCa = await r.json();
+    if (!r.ok || tatCa.loi) throw new Error(tatCa.loi || ('HTTP ' + r.status));
+    const ds = tatCa.models || [];
+    ds.forEach(function (kq) { kq.selected = kq.model_id === ids[0]; });
+    // Model moi chua co lich su van can mot hang/de mau cho du bao sap phat hanh.
+    if (!ds.some(function (kq) { return kq.selected; })) {
+      const m = rtCatalog.find(function (x) { return x.id === ids[0]; });
+      ds.push({model_id:ids[0], model_name:m ? m.ten : ids[0], selected:true,
+        past_forecast:[], weather_updated:[], latest_forecast:[]});
+    }
+    apDungRealtime(ds, false);
     $('#rt-status').textContent = rtTatCa.length ? 'Đã tải lịch sử SQLite. Đang lấy dự báo mới…'
       : 'Chưa có lịch sử. Đang phát hành lượt dự báo đầu tiên…';
   } catch (e) {
@@ -1317,24 +1577,30 @@ async function taiLichSuRealtime() {
 }
 
 async function capNhatRealtime() {
-  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  const ids = modelRealtimeDaChon();
+  if (!ids.length) return;
+  const model = rtCatalog.find(function (m) { return m.id === ids[0]; });
+  $('#rt-status').textContent = 'Đang lấy thời tiết mới và chạy model '
+    + (model ? model.ten : ids[0]) + ' cho 16 điểm tương lai…';
   try {
     const r = await fetch('/realtime/update', {method:'POST',
-      headers:{'Content-Type':'application/json'}, body:JSON.stringify({thuat_toan:ma})});
-    const kq = await r.json();
-    if (!r.ok || kq.loi) throw new Error(kq.loi || ('HTTP ' + r.status));
-    apDungRealtime(kq, true);
-    $('#rt-status').textContent = 'Phát hành lúc ' + String(kq.latest_issued_at).replace('T', ' ')
-      + ' · 16 điểm cho 4 giờ tới · tự làm mới sau 15 phút';
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify({model_id:ids[0]})});
+    const moi = await r.json(); if (!r.ok || moi.loi) throw new Error(moi.loi);
+    const rh = await fetch('/realtime/history-all'), lichSu = await rh.json();
+    const ds = lichSu.models || [];
+    const viTri = ds.findIndex(function (kq) { return kq.model_id === ids[0]; });
+    moi.selected = true;
+    ds.forEach(function (kq) { kq.selected = false; });
+    if (viTri >= 0) ds[viTri] = moi; else ds.push(moi);
+    apDungRealtime(ds, true);
+    $('#rt-status').textContent = 'Đã lấy thời tiết mới và phát hành bằng model '
+      + (moi.model_name || ids[0]) + ' lúc '
+      + String(moi.latest_issued_at || '').replace('T', ' ')
+      + ' · 16 điểm cho 4 giờ tới';
   } catch (e) { $('#rt-status').textContent += ' · Không phát hành được lượt mới: ' + e.message; }
 }
 
-document.querySelectorAll('input[name=thuat_toan]').forEach(function (o) {
-  o.addEventListener('change', async function () {
-    rtDaDatHomNay = false; await taiLichSuRealtime(); capNhatRealtime();
-  });
-});
-taiLichSuRealtime().then(capNhatRealtime);
+napDanhSachModel().then(function () { return taiLichSuRealtime(); }).then(capNhatRealtime);
 setInterval(capNhatRealtime, 15 * 60 * 1000);
 </script>
 </body>

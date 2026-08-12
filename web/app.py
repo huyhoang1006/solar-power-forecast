@@ -84,6 +84,30 @@ def khoi_tao_db_realtime():
             )
         """)
 
+        # Ban dau realtime luu theo ma thuat toan (gbm/rung/...). Tu khi model co
+        # ten va ID rieng, chuyen lich su cu ve ID tep model mac dinh tuong ung de
+        # du lieu da phat hanh van hien tren bieu do thay vi bi tach namespace.
+        for ma_thuat_toan in H.THUAT_TOAN:
+            model_cu = DB.duong_mo_hinh(ma_thuat_toan, bo_nhiet=True).stem
+            db.execute("""
+                INSERT OR IGNORE INTO forecast_4h
+                  (thuat_toan, issued_at, target_time, lead_minutes,
+                   forecast_ghi_wm2, forecast_power_mw, updated_ghi_wm2,
+                   updated_power_mw, updated_at)
+                SELECT ?, issued_at, target_time, lead_minutes, forecast_ghi_wm2,
+                       forecast_power_mw, updated_ghi_wm2, updated_power_mw, updated_at
+                FROM forecast_4h WHERE thuat_toan=?
+            """, (model_cu, ma_thuat_toan))
+            db.execute("DELETE FROM forecast_4h WHERE thuat_toan=?", (ma_thuat_toan,))
+            db.execute("""
+                INSERT OR IGNORE INTO weather_reanalysis
+                  (thuat_toan, target_time, ghi_wm2, power_mw, updated_at)
+                SELECT ?, target_time, ghi_wm2, power_mw, updated_at
+                FROM weather_reanalysis WHERE thuat_toan=?
+            """, (model_cu, ma_thuat_toan))
+            db.execute("DELETE FROM weather_reanalysis WHERE thuat_toan=?",
+                       (ma_thuat_toan,))
+
 
 def luu_realtime(thuat_toan, diem):
     with sqlite3.connect(DB_REALTIME, timeout=10) as db:
@@ -172,13 +196,15 @@ def du_lieu_bieu_do_4h(thuat_toan):
     for r in rows:
         by_target.setdefault(r["target_time"], []).append(r)
 
-    # Qua khu: lay ban du bao gan thoi diem dich nhat (lead time ngan nhat).
+    # Qua khu: lay ban du bao DA PHAT HANH gan thoi diem dich nhat (lead time ngan
+    # nhat). Khong doi updated_power_mw: neu Open-Meteo loi luc chot moc thi du
+    # bao goc van ton tai va van phai hien tren duong "Da phat hanh".
     past = []
+    bay_gio = pd.Timestamp.now().floor("15min").isoformat()
     for target in sorted(by_target):
         versions = by_target[target]
-        done = [r for r in versions if r["updated_power_mw"] is not None]
-        if done:
-            gan_nhat = min(done, key=lambda r: r["lead_minutes"])
+        if target <= bay_gio:
+            gan_nhat = min(versions, key=lambda r: r["lead_minutes"])
             past.append({"time": target, "power_mw": gan_nhat["forecast_power_mw"],
                          "ghi_wm2": gan_nhat["forecast_ghi_wm2"]})
 
@@ -194,6 +220,43 @@ def du_lieu_bieu_do_4h(thuat_toan):
 
 
 khoi_tao_db_realtime()
+
+
+def liet_ke_model_da_luu():
+    """Doc catalog tu cac sidecar JSON; ho tro ca model cu chua co ten tuy chinh."""
+    ra = []
+    if not DB.THU_MUC_MO_HINH.exists():
+        return ra
+    for p in sorted(DB.THU_MUC_MO_HINH.glob("*.joblib")):
+        if p.name.startswith("fc01_") or p.name == "nha_may.joblib":
+            continue
+        meta = {}
+        try:
+            meta = json.loads(p.with_suffix(".json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pass
+        if meta.get("bo_nhiet") is False:
+            continue
+        ma = p.stem
+        ten = meta.get("ten_mo_hinh") or f"{meta.get('ten_thuat_toan', ma)} (model cũ)"
+        ra.append({"id": ma, "ten": ten, "thuat_toan": meta.get("thuat_toan"),
+                   "tep": p.name, "huan_luyen_luc": meta.get("huan_luyen_luc")})
+    return ra
+
+
+def ten_model_da_ton_tai(ten):
+    return any(m["ten"].casefold() == ten.strip().casefold() for m in liet_ke_model_da_luu())
+
+
+def nap_model_theo_id(model_id):
+    import joblib
+    ten = Path(model_id).stem
+    duong = (DB.THU_MUC_MO_HINH / f"{ten}.joblib").resolve()
+    if duong.parent != DB.THU_MUC_MO_HINH.resolve() or not duong.is_file():
+        raise ValueError("Khong tim thay model da chon.")
+    goi = joblib.load(duong)
+    meta = goi.get("sieu_du_lieu", {})
+    return goi, (meta.get("ten_mo_hinh") or ten)
 
 # Mo ta ngan gon tung thuat toan, de nguoi dung biet minh dang chon gi
 GIAI_THICH = {
@@ -301,7 +364,7 @@ def lich_ngay_co_du_lieu(d):
 
 # ---------------------------------------------------------------- huan luyen
 def chay_huan_luyen(duong_dan, thuat_toan, so_fold, bo_nhiet=True, ghi_log=None,
-                    thang_cham=None):
+                    thang_cham=None, ten_mo_hinh=None):
     d = nap(duong_dan)
     cols = H.dac_trung_nha_may(d, bo_nhiet)
     thieu = [c for c in cols if c not in d.columns]
@@ -347,7 +410,8 @@ def chay_huan_luyen(duong_dan, thuat_toan, so_fold, bo_nhiet=True, ghi_log=None,
     try:
         log()
         log("Khop lai tren toan bo du lieu va luu mo hinh")
-        mo_hinh = DB.huan_luyen_va_luu(d, cols, thuat_toan, bo_nhiet, ghi_log=log)
+        mo_hinh = DB.huan_luyen_va_luu(d, cols, thuat_toan, bo_nhiet, ghi_log=log,
+                                      ten_mo_hinh=ten_mo_hinh)
     except Exception as e:                           # noqa: BLE001
         log(f"  Khong luu duoc mo hinh: {e}")
 
@@ -423,10 +487,21 @@ def don_cong_viec_cu(gio=2):
 def bat_dau():
     don_cong_viec_cu()
     ct = request.get_json(force=True)
+    ten_mo_hinh = str(ct.get("ten_mo_hinh") or "").strip()
+    if not ten_mo_hinh:
+        return {"loi": "Ten model khong duoc de trong."}, 400
+    if len(ten_mo_hinh) > 80:
+        return {"loi": "Ten model toi da 80 ky tu."}, 400
     ma = uuid.uuid4().hex[:12]
     cv = {"hang": queue.Queue(), "ket_qua": None, "loi": None,
-          "xong": False, "luc": time.time()}
+          "xong": False, "luc": time.time(), "ten_model": ten_mo_hinh}
     with KHOA:
+        dang_dung = any(not c["xong"] and
+                        str(c.get("ten_model", "")).casefold() == ten_mo_hinh.casefold()
+                        for c in CONG_VIEC.values())
+        if ten_model_da_ton_tai(ten_mo_hinh) or dang_dung:
+            return {"loi": f"Ten model '{ten_mo_hinh}' da ton tai hoac dang duoc training. "
+                           "Hay chon ten khac."}, 409
         CONG_VIEC[ma] = cv
 
     def chay():
@@ -434,7 +509,8 @@ def bat_dau():
             cv["ket_qua"] = chay_huan_luyen(
                 ct["duong_dan"], ct["thuat_toan"], int(ct["so_fold"]),
                 bool(ct.get("bo_nhiet", True)), ghi_log=cv["hang"].put,
-                thang_cham=ct.get("thang_cham") or None)
+                thang_cham=ct.get("thang_cham") or None,
+                ten_mo_hinh=ten_mo_hinh)
         except Exception as e:                       # noqa: BLE001
             cv["loi"] = f"{e}\n\n{traceback.format_exc(limit=3)}"
         finally:
@@ -443,6 +519,60 @@ def bat_dau():
 
     threading.Thread(target=chay, daemon=True).start()
     return {"ma": ma}
+
+
+@app.get("/api/models")
+def api_models_route():
+    return {"models": liet_ke_model_da_luu()}
+
+
+@app.post("/danh-gia-model")
+def danh_gia_model_route():
+    """Chay model da luu tren cac thang qua khu va so voi cong suat SCADA."""
+    ct = request.get_json(force=True)
+    try:
+        goi, model_name = nap_model_theo_id(str(ct.get("model_id") or ""))
+        d = nap(ct["duong_dan"])
+        thang = [str(x) for x in ct.get("thang", [])]
+        if not thang:
+            return {"loi": "Chua chon thang de danh gia."}, 400
+        cols = goi["sieu_du_lieu"]["bien_dau_vao"]
+        thieu = [c for c in cols + ["p_ac_mw", "sol_elev"] if c not in d.columns]
+        if thieu:
+            raise ValueError(f"Bo du lieu thieu bien model can: {thieu}")
+
+        ket_qua, tat_ca_y, tat_ca_p, tat_ca_ghi, bang_du_bao = [], [], [], [], []
+        for ma in thang:
+            period = d.index.to_period("M").astype(str)
+            mask = ((period == ma) & (d["sol_elev"] > H.NGUONG_ELEV_NGAY)
+                    & d[cols + ["p_ac_mw"]].notna().all(axis=1))
+            g = d.loc[mask]
+            if g.empty:
+                ket_qua.append({"thang": ma, "loi": "Khong co mau ban ngay day du."})
+                continue
+            pred = np.clip(goi["mo_hinh"].predict(g[cols].values.astype(float)),
+                           -1.0, H.CAP_AC)
+            pred = H.ap_nen_dem(pred, g["sol_elev"].values, goi.get("nen_dem_mw"))
+            ghi = g["ghi_wm2"].values if "ghi_wm2" in g.columns else None
+            cs = H.tinh_chi_so(g["p_ac_mw"].values, pred, ghi)
+            ket_qua.append({"thang": ma, **{k: _lam_tron(v, 4) for k, v in cs.items()}})
+            bang_du_bao.append(pd.DataFrame({"thuc_te": g["p_ac_mw"].values,
+                                             "du_bao": pred}, index=g.index))
+            tat_ca_y.extend(g["p_ac_mw"].values.tolist())
+            tat_ca_p.extend(np.asarray(pred).tolist())
+            if ghi is not None:
+                tat_ca_ghi.extend(ghi.tolist())
+
+        if not tat_ca_y:
+            return {"loi": "Khong co mau nao danh gia duoc."}, 400
+        tong = H.tinh_chi_so(np.asarray(tat_ca_y), np.asarray(tat_ca_p),
+                             np.asarray(tat_ca_ghi) if tat_ca_ghi else None)
+        return {"model_id": ct["model_id"], "model_name": model_name,
+                "bien_dau_vao": cols, "theo_thang": ket_qua,
+                "theo_ngay": gom_theo_ngay(pd.concat(bang_du_bao).sort_index(), d),
+                "tong_hop": {k: _lam_tron(v, 4) for k, v in tong.items()}}
+    except Exception as e:                           # noqa: BLE001
+        return {"loi": str(e)}, 400
 
 
 @app.post("/du-bao-tuong-lai")
@@ -551,10 +681,24 @@ def tai_huong_dan_deploy_model_route():
 
 @app.get("/realtime/history")
 def realtime_history_route():
-    thuat_toan = request.args.get("thuat_toan", "gbm")
-    if thuat_toan not in H.THUAT_TOAN:
-        return {"loi": "Khong biet thuat toan."}, 400
-    return du_lieu_bieu_do_4h(thuat_toan)
+    model_id = request.args.get("model_id", "")
+    try:
+        _goi, model_name = nap_model_theo_id(model_id)
+    except Exception as e:                           # noqa: BLE001
+        return {"loi": str(e)}, 404
+    return {**du_lieu_bieu_do_4h(model_id), "model_id": model_id,
+            "model_name": model_name}
+
+
+@app.get("/realtime/history-all")
+def realtime_history_all_route():
+    """Lich su cua moi model; dropdown khong duoc lam mat qua khu model khac."""
+    ra = []
+    for m in liet_ke_model_da_luu():
+        data = du_lieu_bieu_do_4h(m["id"])
+        if data["past_forecast"] or data["weather_updated"] or data["latest_forecast"]:
+            ra.append({**data, "model_id": m["id"], "model_name": m["ten"]})
+    return {"models": ra}
 
 
 def _du_doan_frame(goi, frame):
@@ -570,11 +714,9 @@ def _du_doan_frame(goi, frame):
 def realtime_update_route():
     """Chot moc vua qua va phat hanh 16 diem du bao cho 4 gio tiep theo."""
     ct = request.get_json(silent=True) or {}
-    thuat_toan = ct.get("thuat_toan", "gbm")
-    if thuat_toan not in H.THUAT_TOAN:
-        return {"loi": "Khong biet thuat toan."}, 400
+    model_id = str(ct.get("model_id") or "")
     try:
-        goi = DB.nap_mo_hinh(thuat_toan, ghi_log=lambda _dong: None)
+        goi, model_name = nap_model_theo_id(model_id)
         tham_so = {
             "latitude": DB.TT.LAT, "longitude": DB.TT.LON,
             "current": "temperature_2m,relative_humidity_2m,cloud_cover,"
@@ -595,7 +737,7 @@ def realtime_update_route():
         dong = hh.copy()
         dong["ghi_wm2"] = max(0.0, float(hien_tai.get("shortwave_radiation") or 0.0))
         p_hien_tai = float(_du_doan_frame(goi, dong)[0])
-        cap_nhat_moc_da_xay_ra(thuat_toan, moc.isoformat(),
+        cap_nhat_moc_da_xay_ra(model_id, moc.isoformat(),
                               round(float(dong["ghi_wm2"].iloc[0]), 1),
                               round(p_hien_tai, 3), pd.Timestamp.now().isoformat())
 
@@ -621,7 +763,7 @@ def realtime_update_route():
                  "power_mw": round(float(powers_hoi_cuu[i]), 3)}
                 for i, t in enumerate(moc_hoi_cuu)
             ]
-            luu_thoi_tiet_hoi_cuu(thuat_toan, rows_hoi_cuu,
+            luu_thoi_tiet_hoi_cuu(model_id, rows_hoi_cuu,
                                   pd.Timestamp.now().isoformat())
 
         targets = pd.date_range(moc + pd.Timedelta(minutes=15), periods=16, freq="15min")
@@ -635,16 +777,17 @@ def realtime_update_route():
                  "ghi_wm2": round(float(frame.loc[t, "ghi_wm2"]), 1),
                  "power_mw": round(float(powers[i]), 3)}
                 for i, t in enumerate(targets)]
-        luu_lo_du_bao(thuat_toan, issued_at, rows)
-        ra = du_lieu_bieu_do_4h(thuat_toan)
+        luu_lo_du_bao(model_id, issued_at, rows)
+        ra = du_lieu_bieu_do_4h(model_id)
         ra.update({"current": {"time": moc.isoformat(), "power_mw": round(p_hien_tai, 3),
                                "ghi_wm2": round(float(dong["ghi_wm2"].iloc[0]), 1),
                                "temperature_c": _lam_tron(hien_tai.get("temperature_2m"), 1),
                                "cloud_pct": _lam_tron(hien_tai.get("cloud_cover"), 0)},
-                   "cap_nhat_sau_giay": 900, "nguon": "Open-Meteo"})
+                   "cap_nhat_sau_giay": 900, "nguon": "Open-Meteo",
+                   "model_id": model_id, "model_name": model_name})
         return ra
     except Exception as e:                           # noqa: BLE001
-        return {"loi": str(e), **du_lieu_bieu_do_4h(thuat_toan)}, 503
+        return {"loi": str(e), **du_lieu_bieu_do_4h(model_id)}, 503
 
 
 @app.post("/ngay-qua-khu")

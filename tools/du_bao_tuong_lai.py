@@ -241,7 +241,8 @@ def duong_mo_hinh(thuat_toan, bo_nhiet=True):
         f"nha_may_{thuat_toan}_{'khong_nhiet' if bo_nhiet else 'co_nhiet'}.joblib"
 
 
-def huan_luyen_va_luu(d, cols, thuat_toan, bo_nhiet=True, ghi_log=print):
+def huan_luyen_va_luu(d, cols, thuat_toan, bo_nhiet=True, ghi_log=print,
+                      ten_mo_hinh=None):
     """Huan luyen tren toan bo lich su roi luu ra tep. CHI goi tu nut Huan luyen.
 
     Huan luyen phai la mot hanh dong co chu dinh cua nguoi dung, khong bao gio la he
@@ -255,6 +256,7 @@ def huan_luyen_va_luu(d, cols, thuat_toan, bo_nhiet=True, ghi_log=print):
     mo, nen_dem, n_mau, n_vong = huan_luyen(d, cols, thuat_toan, ghi_log)
     vt = _van_tay(d, cols, thuat_toan)
     s = {
+        "ten_mo_hinh": ten_mo_hinh,
         "thuat_toan": thuat_toan,
         "ten_thuat_toan": H.THUAT_TOAN[thuat_toan],
         "bien_dau_vao": cols,
@@ -267,7 +269,11 @@ def huan_luyen_va_luu(d, cols, thuat_toan, bo_nhiet=True, ghi_log=print):
         "trang_thai": "da_ghi_nhan_CHUA_phe_duyet",     # FR-06
     }
     THU_MUC_MO_HINH.mkdir(parents=True, exist_ok=True)
-    duong = duong_mo_hinh(thuat_toan, bo_nhiet)
+    if ten_mo_hinh:
+        import uuid
+        duong = THU_MUC_MO_HINH / f"model_{uuid.uuid4().hex[:12]}.joblib"
+    else:
+        duong = duong_mo_hinh(thuat_toan, bo_nhiet)
     joblib.dump({"mo_hinh": mo, "nen_dem_mw": nen_dem, "van_tay": vt,
                  "sieu_du_lieu": s}, duong)
     duong.with_suffix(".json").write_text(

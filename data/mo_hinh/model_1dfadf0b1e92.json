@@ -1,0 +1,22 @@
+{
+  "ten_mo_hinh": "model-gradient-boosting-3",
+  "thuat_toan": "gbm",
+  "ten_thuat_toan": "Gradient Boosting",
+  "bien_dau_vao": [
+    "ghi_wm2",
+    "sol_elev",
+    "sol_ha",
+    "ghi_ngoai_kq"
+  ],
+  "bo_nhiet": true,
+  "so_mau": 16883,
+  "so_vong_lap": 100,
+  "nen_dem_mw": 0.07205315,
+  "pham_vi": [
+    "2025-07-12 23:45:00",
+    "2026-07-17 09:15:00"
+  ],
+  "huan_luyen_luc": "2026-08-12T07:15:05.729527+00:00",
+  "trang_thai": "da_ghi_nhan_CHUA_phe_duyet",
+  "van_tay": "c29753f06ecad322af9572a39d7e008464590781edb720ddfbd9a7f7ef2bdd83"
+}
