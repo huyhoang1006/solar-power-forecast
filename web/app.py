@@ -523,7 +523,7 @@ def bat_dau():
 
 @app.get("/api/models")
 def api_models_route():
-    return {"models": liet_ke_model_da_luu()}
+    return {"models": liet_ke_model_da_luu()}, 200, {"Cache-Control": "no-store"}
 
 
 @app.post("/danh-gia-model")
