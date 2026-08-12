@@ -1,0 +1,22 @@
+{
+  "ten_mo_hinh": "model-boosting-march-real",
+  "thuat_toan": "gbm",
+  "ten_thuat_toan": "Gradient Boosting",
+  "bien_dau_vao": [
+    "ghi_wm2",
+    "sol_elev",
+    "sol_ha",
+    "ghi_ngoai_kq"
+  ],
+  "bo_nhiet": true,
+  "so_mau": 10022,
+  "so_vong_lap": 100,
+  "nen_dem_mw": 0.07862753000000001,
+  "pham_vi": [
+    "2025-07-12 23:45:00",
+    "2026-02-28 23:45:00"
+  ],
+  "huan_luyen_luc": "2026-08-12T08:34:58.237237+00:00",
+  "trang_thai": "da_ghi_nhan_CHUA_phe_duyet",
+  "van_tay": "b3779bdc817fca19fd44e4cad97367f33e634fa379db8f421c69cd9cf253de61"
+}

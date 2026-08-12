@@ -177,23 +177,16 @@
   </div>
 
   {% if tom_tat %}
-  <h3 style="margin-top:22px">Chọn tháng đem ra chấm</h3>
+  <h3 style="margin-top:22px">Chọn đúng 1 tháng đem ra chấm</h3>
   <div class="thang" id="thang">
     {% for t in tom_tat.thang %}
     <label class="{% if not t.cham_duoc %}khoa{% endif %}"
            title="{{ t.so_o_ngay }} ô ban ngày{% if not t.cham_duoc %} · chưa đủ tháng trước đó để học{% endif %}">
-      <input type="checkbox" value="{{ t.ma }}"
+      <input type="radio" name="thang_cham" value="{{ t.ma }}"
              {% if not t.cham_duoc %}disabled{% endif %}>
       {{ t.nhan }}
     </label>
     {% endfor %}
-  </div>
-  <div class="nhanh">
-    <a data-nhanh="3">3 tháng cuối</a>
-    <a data-nhanh="6">6 tháng cuối</a>
-    <a data-nhanh="tat-ca">Tất cả</a>
-    <a data-nhanh="mua-may">Tháng nhiều mây nhất (11–12/2025)</a>
-    <a data-nhanh="xoa">Bỏ chọn hết</a>
   </div>
   <p class="mo" style="margin-top:6px" id="tom-tat-chon"></p>
   <p class="mo" style="margin-top:2px">
@@ -207,17 +200,15 @@
 
   <div class="luu-y">
     <b>Cách chấm điểm — diễn tập lại quá khứ.</b>
-    Mỗi tháng đem ra chấm là một lần đóng vai người đứng ở cuối tháng trước đó:
-    mô hình chỉ được học từ những gì đã xảy ra trước thời điểm ấy, rồi dự báo tháng
-    tiếp theo, sau đó mới mở dữ liệu thật ra so. Mô hình không bao giờ nhìn thấy tương lai.
+    Chỉ chọn một tháng kiểm định. Model học toàn bộ dữ liệu trước tháng đó, dự báo
+    tháng kiểm định rồi mới mở dữ liệu thật ra so. Chính model đã được chấm này sẽ
+    được lưu; dữ liệu trong và sau tháng kiểm định không được đưa vào huấn luyện.
 
     <div style="margin:10px 0 8px; font-family:Consolas,monospace; font-size:12px;
                 line-height:1.7; color:#333">
       <pre style="margin:0; font:inherit">           2025                  2026
         07 08 09 10 11 12 │ 01 02 03 04 05 06 07
-Lượt 1  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ ██ <b style="color:#c55a11">▓▓</b>
-Lượt 2  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ ██ ██ <b style="color:#c55a11">▓▓</b>
-Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ ██ ██ ██ <b style="color:#c55a11">▓▓</b></pre>
+Model   ██ ██ ██ ██ ██ ██ │ ██ ██ ██ ██ <b style="color:#c55a11">▓▓</b></pre>
       <span style="color:#595959">██ tháng cho mô hình học &nbsp;&nbsp;
       <b style="color:#c55a11">▓▓</b> tháng đem ra chấm</span>
     </div>
@@ -476,8 +467,8 @@ function veKetQua(kq, ma) {
        + thoat(String(ml.pham_vi[1]).slice(0, 10))
        + ' · vân tay <code>' + thoat(ml.van_tay.slice(0, 16)) + '</code>'
        + '<div style="margin-top:8px">Bảng trên là kết quả <b>chấm</b>, mô hình vừa lưu là '
-       + '<b>sản phẩm</b> — nó được khớp lại trên toàn bộ dữ liệu, kể cả các tháng đã đem '
-       + 'ra chấm. Đây là mô hình mục 2 sẽ dùng để dự báo. Trạng thái: '
+       + '<b>sản phẩm</b> — nó chỉ học dữ liệu trước tháng kiểm định và chính là model '
+       + 'vừa được chấm. Đây là mô hình mục 2 sẽ dùng để dự báo. Trạng thái: '
        + thoat(ml.trang_thai) + '.'
        + (ml.bo_nhiet ? '' : ' <b>Mô hình này có dùng nhiệt độ tấm pin nên KHÔNG dự báo '
            + 'ngày mai được</b> — đặt "Nhiệt độ tấm pin = Bỏ ra" rồi huấn luyện lại.')
@@ -1180,30 +1171,12 @@ function capNhatThang() {
   const t = $('#tom-tat-chon');
   if (t) {
     t.textContent = n === 0 ? 'Chưa chọn tháng nào.'
-      : 'Đã chọn ' + n + ' tháng — mô hình sẽ huấn luyện lại ' + n + ' lần, '
-        + 'mỗi lần chỉ học từ các tháng trước tháng đó.';
+      : 'Model sẽ học toàn bộ dữ liệu trước ' + thangDaChon()[0]
+        + ', chấm trên tháng này và lưu đúng model vừa được chấm.';
   }
 }
 document.querySelectorAll('#thang input').forEach(function (o) {
   o.addEventListener('change', capNhatThang);
-});
-document.querySelectorAll('.nhanh a').forEach(function (a) {
-  a.addEventListener('click', function () {
-    const kieu = a.dataset.nhanh;
-    const ds = oThang();
-    ds.forEach(function (o) { o.checked = false; });
-    if (kieu === 'tat-ca') ds.forEach(function (o) { o.checked = true; });
-    else if (kieu === 'mua-may')
-      // Do bang chi so troi quang thuc te, khong phai doan theo mua:
-      //   12/2025 kt=0,337  ·  11/2025 kt=0,342  -- hai thang nhieu may nhat
-      //   01/2026 kt=0,634  ·  04/2026 kt=0,567  -- hai thang quang nhat
-      ds.forEach(function (o) {
-        o.checked = o.value === '2025-11' || o.value === '2025-12';
-      });
-    else if (kieu !== 'xoa')
-      ds.slice(-parseInt(kieu, 10)).forEach(function (o) { o.checked = true; });
-    capNhatThang();
-  });
 });
 // Khong chon mac dinh: nguoi dung quyet dinh ro thang nao dung de cham.
 capNhatThang();
@@ -1217,8 +1190,8 @@ $('#nut').addEventListener('click', function () {
     ten_mo_hinh: $('#ten-model').value.trim(),
     thang_cham: thangDaChon(),
   };
-  if (ct.thang_cham.length === 0) {
-    cacDong = ['Chưa chọn tháng nào để chấm.'];
+  if (ct.thang_cham.length !== 1) {
+    cacDong = ['Mỗi lần huấn luyện phải chọn đúng 1 tháng để chấm.'];
     $('#khoi-nhat-ky').style.display = 'block';
     veNhatKy(false); return;
   }

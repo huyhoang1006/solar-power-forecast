@@ -366,6 +366,12 @@ def lich_ngay_co_du_lieu(d):
 def chay_huan_luyen(duong_dan, thuat_toan, so_fold, bo_nhiet=True, ghi_log=None,
                     thang_cham=None, ten_mo_hinh=None):
     d = nap(duong_dan)
+    if not thang_cham or len(thang_cham) != 1:
+        raise ValueError("Moi lan huan luyen phai chon dung mot thang de cham.")
+    thang_kiem_dinh = pd.Period(str(thang_cham[0]), freq="M")
+    d_hoc = d[d.index.to_period("M") < thang_kiem_dinh].copy()
+    if d_hoc.empty:
+        raise ValueError("Khong co du lieu truoc thang duoc chon de huan luyen.")
     cols = H.dac_trung_nha_may(d, bo_nhiet)
     thieu = [c for c in cols if c not in d.columns]
     if thieu:
@@ -384,6 +390,8 @@ def chay_huan_luyen(duong_dan, thuat_toan, so_fold, bo_nhiet=True, ghi_log=None,
     log(f"Bo du lieu  : {Path(duong_dan).name}")
     log(f"Thuat toan  : {H.THUAT_TOAN[thuat_toan]}")
     log(f"Bien dau vao: {', '.join(cols)}")
+    log(f"Du lieu hoc : tat ca du lieu truoc {thang_kiem_dinh}")
+    log(f"Thang cham  : {thang_kiem_dinh}")
     log()
 
     bat_dau = time.time()
@@ -400,17 +408,14 @@ def chay_huan_luyen(duong_dan, thuat_toan, so_fold, bo_nhiet=True, ghi_log=None,
             if isinstance(v, float):
                 f[k] = round(v, 3)
 
-    # Cham xong moi khop lai tren TOAN BO du lieu va luu ra tep. Thu tu nay co chu y:
-    # nguoi dung nhin thay con so goc truot TRUOC khi mo hinh duoc ghi nhan, nen viec
-    # bam nut la mot quyet dinh co can cu chu khong phai bam mu.
-    #
-    # Day la CHO DUY NHAT trong ca he thong sinh ra mo hinh. Muc du bao chi nap tep
-    # nay ra dung, khong bao gio tu huan luyen.
+    # Luu model tren CHINH tap qua khu da dung o fold kiem dinh duy nhat. Khong duoc
+    # khop lai bang thang cham hay du lieu sau do, neu khong model luu se khac model
+    # vua duoc danh gia va ket qua se bi ro ri tuong lai.
     mo_hinh = None
     try:
         log()
-        log("Khop lai tren toan bo du lieu va luu mo hinh")
-        mo_hinh = DB.huan_luyen_va_luu(d, cols, thuat_toan, bo_nhiet, ghi_log=log,
+        log(f"Luu model hoc tu du lieu truoc {thang_kiem_dinh}")
+        mo_hinh = DB.huan_luyen_va_luu(d_hoc, cols, thuat_toan, bo_nhiet, ghi_log=log,
                                       ten_mo_hinh=ten_mo_hinh)
     except Exception as e:                           # noqa: BLE001
         log(f"  Khong luu duoc mo hinh: {e}")
@@ -487,6 +492,9 @@ def don_cong_viec_cu(gio=2):
 def bat_dau():
     don_cong_viec_cu()
     ct = request.get_json(force=True)
+    thang_cham = ct.get("thang_cham") or []
+    if not isinstance(thang_cham, list) or len(thang_cham) != 1:
+        return {"loi": "Moi lan huan luyen chi duoc chon dung 1 thang de cham."}, 400
     ten_mo_hinh = str(ct.get("ten_mo_hinh") or "").strip()
     if not ten_mo_hinh:
         return {"loi": "Ten model khong duoc de trong."}, 400
@@ -509,7 +517,7 @@ def bat_dau():
             cv["ket_qua"] = chay_huan_luyen(
                 ct["duong_dan"], ct["thuat_toan"], int(ct["so_fold"]),
                 bool(ct.get("bo_nhiet", True)), ghi_log=cv["hang"].put,
-                thang_cham=ct.get("thang_cham") or None,
+                thang_cham=thang_cham,
                 ten_mo_hinh=ten_mo_hinh)
         except Exception as e:                       # noqa: BLE001
             cv["loi"] = f"{e}\n\n{traceback.format_exc(limit=3)}"
