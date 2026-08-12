@@ -8,13 +8,9 @@ __pycache__/
 .idea/
 .vscode/
 
-# Dữ liệu và sản phẩm sinh tự động
-data/csv/
-data/dataset/
-data/du_bao/
-data/mo_hinh/
-data/report/
-data/thu_nghiem/
+# Tep du lieu tho nay vuot gioi han 100 MB cua GitHub.
+# Bo du lieu training trong data/dataset/ van duoc dua len repository.
+data/csv/His_131.csv
 
 # Bí mật và cấu hình cá nhân
 .env

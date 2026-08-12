@@ -1,0 +1,163 @@
+{
+  "phien_ban_script": "1.0",
+  "tao_luc": "2026-08-07T14:28:14.848168+00:00",
+  "ma_kiem_tra_sha256": "2f600b88e75fb5245562847ad0315951edc3960f30a3de1a3381934038378a75",
+  "so_dong": 34662,
+  "so_cot": 18,
+  "pham_vi_thoi_gian": [
+    "2025-07-12 23:45:00",
+    "2026-07-17 09:15:00"
+  ],
+  "mui_gio": "Asia/Ho_Chi_Minh (gio dia phuong nha may)",
+  "tham_so": {
+    "buoc": "15min",
+    "luoi": "60s",
+    "nguon": "D:\\pycharm\\PythonProject8\\data\\csv",
+    "do_phu_toi_thieu": 0.8,
+    "nguong_buc_xa_ngay": 50.0
+  },
+  "nha_may": {
+    "capacity_ac_mw": 40.0,
+    "capacity_dc_mw": 50.0,
+    "lat": 13.8634,
+    "lon": 109.2708
+  },
+  "anh_xa": {
+    "p_ac_mw": {
+      "bang": "His_131",
+      "cot": "Substation_Level_110kV_Bay131_MEAS_P",
+      "min": -2.0,
+      "max": 45.0
+    },
+    "q_ac_mvar": {
+      "bang": "His_131",
+      "cot": "Substation_Level_110kV_Bay131_MEAS_Q",
+      "min": -45.0,
+      "max": 45.0
+    },
+    "p_ac_mw_bak": {
+      "bang": "His_431",
+      "cot": "Substation_Level_22kV_Bay431_MEAS_P",
+      "min": -2.0,
+      "max": 45.0
+    },
+    "ghi_wm2": {
+      "bang": "Weather",
+      "cot": "SOLAR_WS_Rad_1",
+      "min": 0.0,
+      "max": 1350.0
+    },
+    "ghi_wm2_alt": {
+      "bang": "Weather",
+      "cot": "SOLAR_WS_Rad_2",
+      "min": 0.0,
+      "max": 1350.0
+    },
+    "t_panel_c": {
+      "bang": "Weather",
+      "cot": "SOLAR_WS_Panel_T",
+      "min": -10.0,
+      "max": 90.0
+    },
+    "t_air_c": {
+      "bang": "Weather",
+      "cot": "SOLAR_WS_Air_T",
+      "min": -10.0,
+      "max": 55.0
+    },
+    "rh_pct": {
+      "bang": "Weather",
+      "cot": "SOLAR_WS_Humidity",
+      "min": 0.0,
+      "max": 100.0
+    },
+    "wind_ms": {
+      "bang": "Weather",
+      "cot": "SOLAR_WS_Wind_Speed",
+      "min": 0.0,
+      "max": 60.0
+    }
+  },
+  "ma_chat_luong": {
+    "OK": 0,
+    "MISSING": 1,
+    "OUT_OF_RANGE": 2,
+    "SPIKE": 3,
+    "STALE": 4,
+    "LOW_COVERAGE": 5,
+    "SENSOR_FROZEN": 6,
+    "FEEDER_OUTAGE": 7,
+    "ZERO_IN_DAYLIGHT": 8
+  },
+  "thong_ke_chat_luong": {
+    "p_ac_mw": {
+      "0": 520178,
+      "1": 21318,
+      "7": 473,
+      "3": 4
+    },
+    "q_ac_mvar": {
+      "0": 520661,
+      "1": 21312
+    },
+    "p_ac_mw_bak": {
+      "0": 510679,
+      "1": 18505,
+      "8": 12311,
+      "7": 473,
+      "3": 5
+    },
+    "ghi_wm2": {
+      "0": 502598,
+      "1": 39374,
+      "2": 1
+    },
+    "ghi_wm2_alt": {
+      "0": 503345,
+      "6": 20030,
+      "1": 18580,
+      "2": 18
+    },
+    "t_panel_c": {
+      "0": 491316,
+      "1": 39369,
+      "8": 11284,
+      "2": 4
+    },
+    "t_air_c": {
+      "0": 412925,
+      "8": 61138,
+      "1": 39366,
+      "4": 28544
+    },
+    "rh_pct": {
+      "0": 412810,
+      "8": 61138,
+      "1": 39370,
+      "4": 28655
+    },
+    "wind_ms": {
+      "0": 502579,
+      "1": 39394
+    }
+  },
+  "do_phu_theo_bien": {
+    "p_ac_mw": 1.0,
+    "q_ac_mvar": 1.0,
+    "p_ac_mw_bak": 0.9856326813224857,
+    "ghi_wm2": 0.9665051064566383,
+    "ghi_wm2_alt": 0.9678610582193757,
+    "t_panel_c": 0.9589175465928106,
+    "t_air_c": 0.7989729386648202,
+    "rh_pct": 0.7989440886273153,
+    "wind_ms": 0.9663608562691132,
+    "sol_elev": 1.0,
+    "sol_ha": 1.0,
+    "sol_azi": 1.0,
+    "ghi_ngoai_kq": 1.0,
+    "kt": 0.9856326813224857,
+    "e_ac_mwh": 1.0,
+    "n_mau": 1.0,
+    "do_phu": 1.0
+  }
+}

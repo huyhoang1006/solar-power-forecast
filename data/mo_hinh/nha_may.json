@@ -1,0 +1,27 @@
+{
+  "bai_toan": "mo_hinh_nha_may",
+  "tam_du_bao_buoc": 0,
+  "chi_so_goc_truot": {
+    "MAE": 1.7724743224702089,
+    "RMSE": 2.5924115678687536,
+    "NMAE_%": 4.431185806175523,
+    "WAPE_%": 10.733915089644457,
+    "Bias": -0.36811011422585777,
+    "R2": 0.9415419805171393,
+    "MAPE_%_co_nang": 14.533997646062062,
+    "MAE_ban_ngay": 2.0022579308454715,
+    "do_phu": 0.9586712638188657,
+    "n": 7784,
+    "so_fold": 6
+  },
+  "so_vong_lap": 100,
+  "nen_dem_mw": 0.07718642,
+  "nguong_dem_do": -2.0,
+  "huan_luyen_luc": "2026-08-07T03:52:42.326774+00:00",
+  "so_mau_huan_luyen": 33238,
+  "pham_vi_du_lieu": [
+    "2025-07-12 23:45:00",
+    "2026-07-17 09:15:00"
+  ],
+  "trang_thai": "da_ghi_nhan_CHUA_phe_duyet"
+}
