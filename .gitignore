@@ -24,3 +24,4 @@ data/thu_nghiem/
 # File tạm
 *.log
 *.tmp
+db_fujiwara.sql
