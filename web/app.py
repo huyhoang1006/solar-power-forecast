@@ -6,7 +6,8 @@ Chay:
     pip install flask
     python web/app.py
 
-Roi mo trinh duyet: http://127.0.0.1:6001
+Tren may nay: http://127.0.0.1:6001
+Trong cung mang LAN: http://<IP-may-chay>:6001
 
 Nguyen tac thiet ke: web nay KHONG tu cai dat lai quy trinh danh gia. No goi thang
 sang tools/huan_luyen_mo_hinh.py -- cung goc truot, cung bo loc ban ngay, cung bo
@@ -502,6 +503,7 @@ if __name__ == "__main__":
     if not liet_ke_bo_du_lieu():
         print("Chua co bo du lieu nao trong", THU_MUC_DU_LIEU)
         print("Chay truoc:  python tools/tao_bo_du_lieu.py")
-    print("Mo trinh duyet: http://127.0.0.1:6001")
+    print("Tren may nay: http://127.0.0.1:6001")
+    print("Trong LAN:    http://<IP-may-chay>:6001")
     # threaded=True bat buoc: mot luong chay huan luyen, mot luong phuc vu SSE
-    app.run(debug=True, port=6001, threaded=True)
+    app.run(host="0.0.0.0", port=6001, debug=True, threaded=True)
