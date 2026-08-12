@@ -21,6 +21,8 @@ import sys
 import threading
 import time
 import traceback
+import urllib.parse
+import urllib.request
 import uuid
 from pathlib import Path
 
@@ -37,6 +39,8 @@ import du_bao_tuong_lai as DB           # noqa: E402
 app = Flask(__name__)
 
 THU_MUC_DU_LIEU = GOC / "data" / "dataset"
+LICH_SU_REALTIME = {}
+KHOA_REALTIME = threading.Lock()
 
 # Mo ta ngan gon tung thuat toan, de nguoi dung biet minh dang chon gi
 GIAI_THICH = {
@@ -390,6 +394,57 @@ def tai_huong_dan_deploy_model_route():
     return send_file(GOC / "HUONG_DAN_DEPLOY_MODEL.md", as_attachment=True,
                      download_name="HUONG_DAN_DEPLOY_MODEL.md",
                      mimetype="text/markdown")
+
+
+@app.get("/realtime")
+def realtime_route():
+    """Lay thoi tiet hien tai va du doan cong suat; giu 24 gio diem gan nhat."""
+    thuat_toan = request.args.get("thuat_toan", "gbm")
+    if thuat_toan not in H.THUAT_TOAN:
+        return {"loi": "Khong biet thuat toan."}, 400
+    try:
+        goi = DB.nap_mo_hinh(thuat_toan, ghi_log=lambda _dong: None)
+        tham_so = {
+            "latitude": DB.TT.LAT, "longitude": DB.TT.LON,
+            "current": "temperature_2m,relative_humidity_2m,cloud_cover,"
+                       "wind_speed_10m,shortwave_radiation",
+            "timezone": DB.TT.MUI_GIO,
+        }
+        url = DB.TT.API + "?" + urllib.parse.urlencode(tham_so)
+        req = urllib.request.Request(url, headers={"User-Agent": "solar-forecast-fujiwara/1.0"})
+        with urllib.request.urlopen(req, timeout=30) as phan_hoi:
+            hien_tai = json.loads(phan_hoi.read().decode("utf-8"))["current"]
+
+        moc = pd.Timestamp(hien_tai["time"])
+        hh = DB._hinh_hoc(pd.DatetimeIndex([moc]))
+        dong = hh.copy()
+        dong["ghi_wm2"] = max(0.0, float(hien_tai.get("shortwave_radiation") or 0.0))
+        cols = goi["sieu_du_lieu"]["bien_dau_vao"]
+        thieu = [c for c in cols if c not in dong.columns]
+        if thieu:
+            raise ValueError(f"Model can bien realtime chua co: {thieu}")
+        p = float(goi["mo_hinh"].predict(dong[cols].values.astype(float))[0])
+        p = float(np.clip(p, -1.0, H.CAP_AC))
+        p = float(H.ap_nen_dem(np.array([p]), dong["sol_elev"].values,
+                               goi["nen_dem_mw"])[0])
+        diem = {
+            "time": moc.isoformat(), "power_mw": round(p, 3),
+            "ghi_wm2": round(float(dong["ghi_wm2"].iloc[0]), 1),
+            "temperature_c": _lam_tron(hien_tai.get("temperature_2m"), 1),
+            "humidity_pct": _lam_tron(hien_tai.get("relative_humidity_2m"), 0),
+            "cloud_pct": _lam_tron(hien_tai.get("cloud_cover"), 0),
+            "wind_kmh": _lam_tron(hien_tai.get("wind_speed_10m"), 1),
+        }
+        with KHOA_REALTIME:
+            lich_su = LICH_SU_REALTIME.setdefault(thuat_toan, [])
+            if not lich_su or lich_su[-1]["time"] != diem["time"]:
+                lich_su.append(diem)
+            LICH_SU_REALTIME[thuat_toan] = lich_su[-96:]
+            ra = list(LICH_SU_REALTIME[thuat_toan])
+        return {"diem": diem, "lich_su": ra, "cap_nhat_sau_giay": 900,
+                "nguon": "Open-Meteo current conditions"}
+    except Exception as e:                           # noqa: BLE001
+        return {"loi": str(e)}, 503
 
 
 @app.post("/ngay-qua-khu")

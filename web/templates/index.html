@@ -261,11 +261,27 @@ Lượt 3  ██ ██ ██ ██ ██ ██ │ ██ ██ ██ �
   </div>
 </section>
 
+<section>
+  <h2>3. Theo dõi công suất realtime</h2>
+  <p class="mo">Tự cập nhật mỗi 15 phút từ thời tiết hiện tại của Open-Meteo và model
+    đang chọn. Lịch sử trên biểu đồ được giữ trong bộ nhớ máy chủ tối đa 24 giờ.</p>
+  <div class="chi-so" id="realtime-chi-so">
+    <div class="o nhan-manh"><div class="ten">Công suất dự đoán</div>
+      <div class="gia-tri" id="rt-power">—</div></div>
+    <div class="o"><div class="ten">Bức xạ</div><div class="gia-tri" id="rt-ghi">—</div></div>
+    <div class="o"><div class="ten">Nhiệt độ không khí</div>
+      <div class="gia-tri" id="rt-temp">—</div></div>
+    <div class="o"><div class="ten">Mây</div><div class="gia-tri" id="rt-cloud">—</div></div>
+  </div>
+  <div id="rt-chart" class="bieu-do"></div>
+  <p class="mo" id="rt-status">Đang lấy thời tiết hiện tại…</p>
+</section>
+
 <section id="khoi-ket-qua"></section>
 
 {% if tom_tat %}
 <section>
-  <h2>3. Dữ liệu dùng để huấn luyện</h2>
+  <h2>4. Dữ liệu dùng để huấn luyện</h2>
   <div class="chi-so">
     <div class="o"><div class="ten">Tổng số ô</div>
       <div class="gia-tri">{{ '{:,}'.format(tom_tat.so_o) }}</div></div>
@@ -1104,6 +1120,65 @@ $('#nut-du-bao').addEventListener('click', function () {
     if (m) $('#trang-thai-2').textContent = m[1] + ' ' + m[2];
   }, xong2, veDuBao);
 });
+
+// ---------------------------------------------------------- realtime 15 phut
+function veRealtime(ds) {
+  if (!ds.length) return '<p class="mo">Chưa có điểm realtime.</p>';
+  const W = 1000, Hh = 260, L = 54, R = 58, T = 20, B = 36;
+  const pw = W - L - R, ph = Hh - T - B;
+  const x = function (i) { return L + (ds.length === 1 ? pw / 2 : i * pw / (ds.length - 1)); };
+  const yP = function (v) { return T + ph - Math.max(0, Math.min(40, v)) / 40 * ph; };
+  const maxG = Math.max(1000, ...ds.map(function (d) { return Number(d.ghi_wm2 || 0); }));
+  const yG = function (v) { return T + ph - Math.max(0, Number(v || 0)) / maxG * ph; };
+  const path = function (layY) { return ds.map(function (d, i) {
+    return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + layY(d).toFixed(1); }).join(' '); };
+  let g = '<svg viewBox="0 0 ' + W + ' ' + Hh + '" width="100%" height="260" role="img"'
+    + ' aria-label="Biểu đồ công suất realtime"><rect x="' + L + '" y="' + T
+    + '" width="' + pw + '" height="' + ph + '" fill="#fafbfc" stroke="#d9d9d9"/>';
+  [0, 10, 20, 30, 40].forEach(function (v) {
+    const y = yP(v); g += '<line x1="' + L + '" x2="' + (W-R) + '" y1="' + y
+      + '" y2="' + y + '" stroke="#e8e8e8"/><text x="' + (L-8) + '" y="' + (y+4)
+      + '" text-anchor="end" font-size="11">' + v + '</text>'; });
+  g += '<path d="' + path(function (d) { return yP(d.power_mw); })
+    + '" fill="none" stroke="#1f4e79" stroke-width="2.5"/>'
+    + '<path d="' + path(function (d) { return yG(d.ghi_wm2); })
+    + '" fill="none" stroke="#c55a11" stroke-width="1.8" stroke-dasharray="5 3"/>';
+  ds.forEach(function (d, i) {
+    if (i === 0 || i === ds.length - 1 || i % Math.max(1, Math.ceil(ds.length / 6)) === 0) {
+      const nhan = String(d.time).slice(11, 16);
+      g += '<text x="' + x(i) + '" y="' + (Hh-12) + '" text-anchor="middle" font-size="11">'
+        + nhan + '</text>'; }
+  });
+  return g + '<text x="' + (L+8) + '" y="14" fill="#1f4e79" font-size="11">'
+    + '━ Công suất (MW)</text><text x="' + (L+135) + '" y="14" fill="#c55a11" font-size="11">'
+    + '┄ Bức xạ (W/m²)</text></svg>';
+}
+
+async function capNhatRealtime() {
+  const ma = document.querySelector('input[name=thuat_toan]:checked').value;
+  $('#rt-status').textContent = 'Đang cập nhật…';
+  try {
+    const r = await fetch('/realtime?thuat_toan=' + encodeURIComponent(ma));
+    const kq = await r.json();
+    if (!r.ok || kq.loi) throw new Error(kq.loi || ('HTTP ' + r.status));
+    const d = kq.diem;
+    $('#rt-power').textContent = Number(d.power_mw).toFixed(2) + ' MW';
+    $('#rt-ghi').textContent = Number(d.ghi_wm2).toFixed(0) + ' W/m²';
+    $('#rt-temp').textContent = d.temperature_c === null ? '—' : d.temperature_c + ' °C';
+    $('#rt-cloud').textContent = d.cloud_pct === null ? '—' : d.cloud_pct + '%';
+    $('#rt-chart').innerHTML = veRealtime(kq.lich_su);
+    $('#rt-status').textContent = 'Cập nhật lúc ' + String(d.time).replace('T', ' ')
+      + ' · tự làm mới sau 15 phút · ' + kq.nguon;
+  } catch (e) {
+    $('#rt-status').textContent = 'Không cập nhật được realtime: ' + e.message;
+  }
+}
+
+document.querySelectorAll('input[name=thuat_toan]').forEach(function (o) {
+  o.addEventListener('change', capNhatRealtime);
+});
+capNhatRealtime();
+setInterval(capNhatRealtime, 15 * 60 * 1000);
 </script>
 </body>
 </html>
